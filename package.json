@@ -1,0 +1,48 @@
+{
+  "name": "sushi-client",
+  "version": "0.1.0",
+  "description": "Sushi Client - a Minecraft launcher and FPS-focused client (Windows first)",
+  "main": "main.js",
+  "author": "Sushi Client Team",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/selftest.js",
+    "dist:win": "electron-builder --win portable --x64 --publish never"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.sushi.client",
+    "productName": "Sushi Client",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "SushiClient-${version}.exe"
+    }
+  }
+}
