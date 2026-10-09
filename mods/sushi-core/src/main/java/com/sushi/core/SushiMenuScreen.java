@@ -14,8 +14,20 @@ public class SushiMenuScreen extends Screen {
     private static final int CARD_H = 92;
     private static final int GAP = 14;
 
+    private final Screen parent;
+
     public SushiMenuScreen() {
+        this(null);
+    }
+
+    public SushiMenuScreen(Screen parent) {
         super(Text.literal("Sushi Client"));
+        this.parent = parent;
+    }
+
+    @Override
+    public void close() {
+        client.setScreen(parent);
     }
 
     @Override
@@ -57,9 +69,14 @@ public class SushiMenuScreen extends Screen {
         int by = height - 44;
         addDrawableChild(ButtonWidget.builder(Text.literal("Edit HUD layout"),
                 b -> client.setScreen(new HudEditorScreen(this)))
-            .dimensions(width / 2 - 160, by, 150, 20).build());
+            .dimensions(width / 2 - 230, by, 150, 20).build());
+        addDrawableChild(ButtonWidget.builder(titleLabel(), b -> {
+                SushiConfig.customTitle = !SushiConfig.customTitle;
+                SushiConfig.save();
+                b.setMessage(titleLabel());
+            }).dimensions(width / 2 - 75, by, 150, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close())
-            .dimensions(width / 2 + 10, by, 150, 20).build());
+            .dimensions(width / 2 + 80, by, 150, 20).build());
     }
 
     @Override
@@ -81,6 +98,10 @@ public class SushiMenuScreen extends Screen {
 
     private static Text label(int i) {
         return Text.literal(SushiConfig.enabled[i] ? "ENABLED" : "DISABLED");
+    }
+
+    private static Text titleLabel() {
+        return Text.literal("Title: " + (SushiConfig.customTitle ? "SUSHI" : "VANILLA"));
     }
 
     private static void toggle(int i) {

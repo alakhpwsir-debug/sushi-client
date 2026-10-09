@@ -24,6 +24,8 @@ public final class SushiConfig {
     public static final boolean[] bg = {true, true, true, true, true};
     public static boolean cpsRight = true;
     public static boolean coordsY = true;
+    /** Replace the vanilla title screen with the Sushi title screen. */
+    public static boolean customTitle = true;
 
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("sushi-core.properties");
 
@@ -48,6 +50,7 @@ public final class SushiConfig {
         }
         cpsRight = bool(p, "cps.right", true);
         coordsY = bool(p, "coords.y", true);
+        customTitle = bool(p, "title.custom", true);
     }
 
     public static void save() {
@@ -62,6 +65,7 @@ public final class SushiConfig {
         }
         p.setProperty("cps.right", String.valueOf(cpsRight));
         p.setProperty("coords.y", String.valueOf(coordsY));
+        p.setProperty("title.custom", String.valueOf(customTitle));
         try {
             Files.createDirectories(FILE.getParent());
             try (OutputStream out = Files.newOutputStream(FILE)) {

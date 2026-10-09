@@ -113,3 +113,7 @@ News and servers come from `assets/content.json`. Edit that file and rebuild, or
 - **Play bar profile switcher:** pick a profile without leaving the page.
 - **Open mods folder:** on the Mods page or in a profile's editor. Launch a Fabric profile once first so its folder exists.
 - **Settings → Appearance:** Aurora, Midnight, Nebula, or your own image (PNG or JPG, up to 2.5 MB).
+
+## Sushi title screen
+
+Sushi Core replaces the vanilla title screen with its own, using a small mixin on `MinecraftClient.setScreen`. It has a centered menu (Singleplayer, Multiplayer, Options, Keybinds, Quit), an account bar, shortcuts to the Sushi menu and HUD layout editor, and a tips card. Turn it off from the Sushi menu (**Title: SUSHI / VANILLA**). The change applies the next time the title screen opens.
