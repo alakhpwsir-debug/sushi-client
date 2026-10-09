@@ -12,15 +12,28 @@ Built with Electron. Windows `.exe` first, Android later.
 | Launcher UI (sidebar, Home, Play, Mods, FPS Boost, Accounts, Settings) | Done |
 | Download Minecraft versions from Mojang (client, libraries, natives, assets) | Done |
 | Java runtime auto-install (Temurin via Adoptium) | Done |
-| Fabric loader install for 1.14+ | Done |
+| Fabric loader install for 1.14+ (default 1.21.1, Java 21 auto-installed) | Done |
 | Built-in mod picker (Sodium, Lithium, FerriteCore, Mod Menu, ...) from Modrinth | Done |
 | FPS Boost presets (Off / Balanced / Max FPS): JVM GC tuning and options.txt | Done |
 | Offline accounts | Done |
 | Microsoft login (device code flow) | Done, needs your Azure Client ID (see below) |
 | Windows portable `.exe` build (GitHub Actions) | Done |
-| Sushi Core in-game mod (CPS, keystrokes, minimap, zoom) | Planned, phase 2 |
+| FPS mods: Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast, ModernFix, Dynamic FPS | Done |
+| Sushi Core in-game HUD mod for 1.21.1 (FPS, CPS, keystrokes, ping, coords, Right Shift toggle) | Done, compiled against Fabric API 0.116.17 |
+| Sushi Core zoom, minimap, waypoints, Sushi settings screen | Planned |
 | Cosmetics, server list, news feed | Planned |
 | Android app | Planned, after Windows feedback |
+
+## Sushi Core (in-game mod)
+
+Source lives in `mods/sushi-core`. The built jar is committed at `assets/mods/sushi-core-1.21.1.jar` and copied into each Fabric instance by the launcher.
+
+Rebuild it (needs Java 21):
+```bash
+cd mods/sushi-core
+./gradlew build
+cp build/libs/sushi-core-0.1.0.jar ../../assets/mods/sushi-core-1.21.1.jar
+```
 
 ## Project layout
 

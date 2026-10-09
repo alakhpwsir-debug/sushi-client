@@ -34,7 +34,7 @@ const FPS_PRESETS = {
   },
   max: {
     label: 'Max FPS',
-    description: 'Lowest visual quality, highest frame rate. Uses ZGC on Java 17+.',
+    description: 'Lowest visual quality, highest frame rate. ZGC garbage collector (Java 17+), fixed heap size, no particles or fancy effects.',
     jvm: null, // chosen per Java version in presetJvmArgs
     options: {
       maxFps: '260',

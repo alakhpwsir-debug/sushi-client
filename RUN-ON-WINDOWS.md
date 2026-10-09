@@ -36,12 +36,13 @@ There are two ways. Option A needs no coding tools and gives you the `.exe`. Opt
    `npm install` downloads Electron (about 100 MB). It takes a few minutes the first time.
 5. The Sushi Client window opens. To make a portable `.exe` on your PC, run `npm run dist:win`. The file appears in the `dist` folder.
 
-## First launch checklist
+## First launch checklist (updated for 0.1.0 beta 2)
 
 1. Go to **Accounts**, type a name (3-16 letters/numbers/_) and press **Add** to use an offline account. Microsoft login needs the Azure setup described in README.md.
-2. Go to **Mods** and tick what you want.
-3. Go to **FPS Boost** and pick a preset (Balanced is a good start).
-4. Go to **Play**, pick a version (1.20.4 is a good default), keep **Use Fabric** ticked, and press **Play**.
+2. Go to **Mods** to see what's enabled. Sushi Core and the performance mods are on by default.
+3. Go to **FPS** and keep **Max FPS** (the default), or pick Balanced if you want better visuals.
+4. At the bottom, pick **1.21.1**, keep **Fabric** ticked, and press **PLAY**. Sushi Core (the in-game HUD) is installed automatically.
+5. In game, press **Right Shift** to hide or show the HUD (FPS, CPS, keystrokes, ping, coordinates).
    - The first launch downloads Minecraft (about 700 MB), libraries, assets, and Java 17 automatically. This can take several minutes.
    - Progress shows in the status bar and the console.
 

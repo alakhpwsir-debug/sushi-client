@@ -9,12 +9,12 @@ const auth = require('./src/launcher/auth');
 const paths = dirs(ROOT);
 
 const DEFAULT_SETTINGS = {
-  memoryMB: 4096,
+  memoryMB: 6144,
   javaPath: '',
-  fpsPreset: 'balanced',
-  enabledMods: ['sodium', 'lithium', 'ferrite-core', 'modmenu'],
+  fpsPreset: 'max',
+  enabledMods: ['sushi-core', 'sodium', 'lithium', 'ferrite-core', 'entityculling', 'immediatelyfast', 'modernfix', 'modmenu'],
   msClientId: '',
-  lastVersion: '1.20.4',
+  lastVersion: '1.21.1',
   fabric: true,
 };
 
@@ -144,6 +144,7 @@ function registerIpc() {
         javaPath: s.javaPath,
         fpsPreset: s.fpsPreset,
         mods: fabric ? s.enabledMods : [],
+        bundledModsDir: path.join(__dirname, 'assets', 'mods'),
       },
       emit,
     );

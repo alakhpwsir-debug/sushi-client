@@ -102,8 +102,10 @@ const step = (name) => console.log(`- ${name}`);
   const opt = fs.readFileSync(path.join(gameDir, 'options.txt'), 'utf8');
   assert(opt.includes('fov:0.5') && opt.includes('maxFps:144') && opt.includes('particles:1'));
 
-  step('mod catalog');
+  step('mod catalog + bundled Sushi Core jar');
   assert(MOD_CATALOG.length >= 5);
+  assert(MOD_CATALOG.find((m) => m.slug === 'sushi-core' && m.bundled));
+  assert(fs.existsSync(path.join(__dirname, '..', 'assets', 'mods', 'sushi-core-1.21.1.jar')), 'bundled jar missing');
 
   fs.rmSync(root, { recursive: true, force: true });
   console.log('\nAll checks passed.');

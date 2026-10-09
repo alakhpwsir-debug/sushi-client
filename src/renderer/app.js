@@ -3,14 +3,20 @@ const $ = (sel) => document.querySelector(sel);
 const api = window.sushi;
 
 let settings = {};
+let presetLabels = {};
+let busy = false;
 
 function show(view) {
   document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === `view-${view}`));
-  document.querySelectorAll('.nav').forEach((el) => el.classList.toggle('active', el.dataset.view === view));
+  document.querySelectorAll('.rail-btn').forEach((el) => el.classList.toggle('active', el.dataset.view === view));
 }
 
 function status(text) {
   $('#status').textContent = text;
+}
+
+function setProgress(pct) {
+  $('#progress').style.width = `${pct}%`;
 }
 
 function consoleLog(text) {
@@ -21,6 +27,13 @@ function consoleLog(text) {
 
 async function saveSettings(patch) {
   settings = await api.settings.set(patch);
+  refreshHome();
+}
+
+function refreshHome() {
+  $('#homePreset').textContent = presetLabels[settings.fpsPreset] || 'Max FPS';
+  const count = (settings.enabledMods || []).length;
+  $('#homeMods').textContent = `${count} mod${count === 1 ? '' : 's'} enabled`;
 }
 
 function renderMods(enabled, catalog) {
@@ -34,7 +47,7 @@ function renderMods(enabled, catalog) {
       <h3></h3>
       <p class="muted small"></p>
       <label class="toggle"><input type="checkbox"> Enabled</label>`;
-    card.querySelector('.tag').textContent = mod.category;
+    card.querySelector('.tag').textContent = mod.mcOnly ? `${mod.category} · ${mod.mcOnly} only` : mod.category;
     card.querySelector('h3').textContent = mod.name;
     card.querySelector('p').textContent = mod.desc;
     const box = card.querySelector('input');
@@ -42,7 +55,8 @@ function renderMods(enabled, catalog) {
     card.classList.toggle('selected', box.checked);
     box.addEventListener('change', async () => {
       const set = new Set(settings.enabledMods || []);
-      box.checked ? set.add(mod.slug) : set.delete(mod.slug);
+      if (box.checked) set.add(mod.slug);
+      else set.delete(mod.slug);
       await saveSettings({ enabledMods: [...set] });
       card.classList.toggle('selected', box.checked);
     });
@@ -52,6 +66,7 @@ function renderMods(enabled, catalog) {
 
 async function renderFps(current) {
   const presets = await api.fps.presets();
+  presetLabels = Object.fromEntries(Object.entries(presets).map(([k, p]) => [k, p.label]));
   const list = $('#fpsList');
   list.innerHTML = '';
   for (const [key, p] of Object.entries(presets)) {
@@ -72,6 +87,7 @@ async function renderFps(current) {
     });
     list.appendChild(card);
   }
+  refreshHome();
 }
 
 async function renderAccounts() {
@@ -88,7 +104,7 @@ async function renderAccounts() {
   for (const a of accounts) {
     const row = document.createElement('div');
     row.className = `row ${a.id === activeId ? 'active' : ''}`;
-    row.innerHTML = `<div><b></b><small></small></div><div class="row-actions"><button class="btn small use"></button><button class="btn small danger">Remove</button></div>`;
+    row.innerHTML = `<div><b></b><small></small></div><div class="row-actions compact"><button class="btn small use"></button><button class="btn small danger">Remove</button></div>`;
     row.querySelector('b').textContent = a.username;
     row.querySelector('small').textContent = `${a.type === 'microsoft' ? 'Microsoft' : 'Offline'} · ${a.uuid}`;
     const use = row.querySelector('.use');
@@ -107,27 +123,34 @@ async function renderAccounts() {
 }
 
 async function launch() {
+  if (busy) return;
   const mc = $('#versionSelect').value;
   const fabric = $('#fabricToggle').checked;
-  await saveSettings({ lastVersion: mc, fabric });
+  busy = true;
   $('#playBtn').disabled = true;
-  $('#homePlay').disabled = true;
+  $('#playBtn').textContent = 'LOADING';
+  setProgress(15);
+  await saveSettings({ lastVersion: mc, fabric });
   consoleLog(`\n> Launching Minecraft ${mc}${fabric ? ' + Fabric' : ''}\n`);
   try {
     const pid = await api.game.launch({ mc, fabric });
     status(`Minecraft is running (pid ${pid})`);
+    setProgress(100);
+    $('#playBtn').textContent = 'RUNNING';
   } catch (err) {
     status(`Error: ${err.message}`);
     consoleLog(`\n[error] ${err.message}\n`);
-  } finally {
+    setProgress(0);
+    $('#playBtn').textContent = 'PLAY';
     $('#playBtn').disabled = false;
-    $('#homePlay').disabled = false;
+    busy = false;
   }
 }
 
 async function init() {
-  document.querySelectorAll('.nav').forEach((el) => el.addEventListener('click', () => show(el.dataset.view)));
+  document.querySelectorAll('.rail-btn').forEach((el) => el.addEventListener('click', () => show(el.dataset.view)));
   document.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', () => show(el.dataset.go)));
+  $('#activeUser').addEventListener('click', () => show('accounts'));
 
   settings = await api.settings.get();
 
@@ -136,6 +159,8 @@ async function init() {
   versions.filter((v) => v.type === 'release').forEach((v) => sel.add(new Option(v.id, v.id)));
   sel.value = settings.lastVersion;
   $('#fabricToggle').checked = Boolean(settings.fabric);
+  sel.addEventListener('change', () => saveSettings({ lastVersion: sel.value }));
+  $('#fabricToggle').addEventListener('change', (e) => saveSettings({ fabric: e.target.checked }));
 
   const memory = $('#memory');
   memory.value = settings.memoryMB;
@@ -150,7 +175,6 @@ async function init() {
   await renderAccounts();
 
   $('#playBtn').addEventListener('click', launch);
-  $('#homePlay').addEventListener('click', launch);
 
   $('#saveSettings').addEventListener('click', async () => {
     await saveSettings({
@@ -187,18 +211,24 @@ async function init() {
       $('#msCode').classList.add('hidden');
     }
   });
-  $('#msOpen').addEventListener('click', () => api.app.openUrl('https://www.microsoft.com/link'));
 
   api.on('ms:code', ({ code, url }) => {
     $('#msCodeValue').textContent = code;
     $('#msCode').classList.remove('hidden');
     $('#msOpen').onclick = () => api.app.openUrl(url);
   });
-  api.on('game:status', ({ text }) => status(text));
+  api.on('game:status', ({ text }) => {
+    status(text);
+    if (busy) setProgress(Math.min(90, Number(($('#progress').style.width || '15%').replace('%', '')) + 6));
+  });
   api.on('game:log', ({ text }) => consoleLog(text));
   api.on('game:exit', ({ code }) => {
     status(`Minecraft closed (exit code ${code})`);
     consoleLog(`\n[game exited with code ${code}]\n`);
+    setProgress(0);
+    busy = false;
+    $('#playBtn').disabled = false;
+    $('#playBtn').textContent = 'PLAY';
   });
 }
 

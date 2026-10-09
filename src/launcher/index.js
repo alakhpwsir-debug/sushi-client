@@ -29,7 +29,7 @@ async function launchGame(opts, emit) {
 
   if (fabric && opts.mods && opts.mods.length) {
     status('Installing mods...');
-    await installMods(gameDir, mc, opts.mods, status);
+    await installMods(gameDir, mc, opts.mods, status, opts.bundledModsDir);
   }
 
   const preset = FPS_PRESETS[opts.fpsPreset] || FPS_PRESETS.off;
