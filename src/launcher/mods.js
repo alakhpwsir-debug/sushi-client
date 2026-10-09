@@ -49,6 +49,14 @@ async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir
         continue;
       }
 
+      // Reuse the jar from the last launch when the Minecraft version has not changed: no API call, no download.
+      const cachedName = previous.__mc === mc ? previous[slug] : null;
+      if (cachedName && fs.existsSync(path.join(modsDir, cachedName))) {
+        next[slug] = cachedName;
+        log(`${label}: ready (cached)`);
+        continue;
+      }
+
       const versions = await fetchJson(`https://api.modrinth.com/v2/project/${slug}/version?${q}`);
       if (!versions.length) throw new Error(`no Fabric build for ${mc}`);
       const file = versions[0].files.find((f) => f.primary) || versions[0].files[0];
@@ -62,9 +70,10 @@ async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir
   }
 
   for (const [slug, filename] of Object.entries(previous)) {
+    if (slug === '__mc') continue;
     if (next[slug] !== filename) fs.rmSync(path.join(modsDir, filename), { force: true });
   }
-  fs.writeFileSync(manifestFile, JSON.stringify(next, null, 2));
+  fs.writeFileSync(manifestFile, JSON.stringify({ ...next, __mc: mc }, null, 2));
   return next;
 }
 

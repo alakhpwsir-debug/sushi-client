@@ -117,3 +117,9 @@ News and servers come from `assets/content.json`. Edit that file and rebuild, or
 ## Sushi title screen
 
 Sushi Core replaces the vanilla title screen with its own, using a small mixin on `MinecraftClient.setScreen`. It has a centered menu (Singleplayer, Multiplayer, Options, Keybinds, Quit), an account bar, shortcuts to the Sushi menu and HUD layout editor, and a tips card. Turn it off from the Sushi menu (**Title: SUSHI / VANILLA**). The change applies the next time the title screen opens.
+
+## Title screen background and launch performance
+
+- **Panorama:** the Sushi title screen slowly roams across an original scenic panorama (`mods/sushi-core/src/main/resources/assets/sushi-core/textures/gui/title_panorama.png`). Replace that file (keep the same size) to use your own picture.
+- **Mods are cached:** a launch reuses the mod jars from the last run when the Minecraft version hasn't changed. It skips the Modrinth lookups and downloads.
+- **Memory is capped to your PC:** the Java heap never exceeds 60% of your physical RAM (minimum 2 GB), so the game doesn't swap to disk.

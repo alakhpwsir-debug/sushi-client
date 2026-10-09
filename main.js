@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, shell, safeStorage, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { ROOT, dirs } = require('./src/launcher/paths');
 const core = require('./src/launcher');
 const auth = require('./src/launcher/auth');
@@ -42,6 +43,12 @@ function modsFolderFor(p) {
   found.sort((a, b) => fs.statSync(path.join(inst, b)).mtimeMs - fs.statSync(path.join(inst, a)).mtimeMs);
   if (!found.length) throw new Error('Launch this profile once first so Fabric can install, then open the mods folder.');
   return path.join(inst, found[0], 'mods');
+}
+
+// Caps the Java heap to 60% of the PC's RAM (minimum 2 GB). A heap bigger than physical RAM causes swapping and heavy lag.
+function capMemory(requestedMB) {
+  const physicalMB = Math.floor(os.totalmem() / 1048576);
+  return Math.max(2048, Math.min(requestedMB, Math.floor(physicalMB * 0.6)));
 }
 
 function readJson(file, fallback) {
@@ -183,7 +190,7 @@ function registerIpc() {
         mc: profile.mc,
         fabric: profile.fabric,
         account,
-        memoryMB: s.memoryMB,
+        memoryMB: capMemory(s.memoryMB),
         javaPath: s.javaPath,
         fpsPreset: profile.fpsPreset,
         mods: profile.fabric ? profile.mods : [],

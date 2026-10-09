@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screen.option.KeybindsScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,13 @@ public class SushiTitleScreen extends Screen {
     private static final int TOP_BG = 0xFF0C0E24;
     private static final int BOTTOM_BG = 0xFF05060D;
     private static final int PURPLE2 = 0xFFC084FC;
+
+    /** Original scenic panorama (assets/sushi-core/textures/gui/title_panorama.png), 1456 x 720. */
+    private static final Identifier PANORAMA = Identifier.of("sushi-core", "textures/gui/title_panorama.png");
+    private static final int PANO_W = 1456;
+    private static final int PANO_H = 720;
+    /** One full roam from left to right and back takes this long. */
+    private static final long ROAM_MS = 90_000L;
 
     private record Rect(int x, int y, int w, int h, String label, Runnable run) {
         boolean hit(double mx, double my) {
@@ -106,17 +114,16 @@ public class SushiTitleScreen extends Screen {
     }
 
     private void drawBackground(DrawContext ctx) {
+        // Slow roam: the view glides across the panorama and back, eased at each end.
+        double phase = (System.currentTimeMillis() % ROAM_MS) / (double) ROAM_MS;
+        float t = (float) (0.5 - 0.5 * Math.cos(2 * Math.PI * phase));
+        int visW = Math.min(PANO_W, Math.max(1, Math.round(PANO_H * (width / (float) Math.max(1, height)))));
+        float u = (PANO_W - visW) * t;
+        ctx.drawTexture(PANORAMA, 0, 0, width, height, u, 0f, visW, PANO_H, PANO_W, PANO_H);
+
+        // Darken the top and bottom so the menu text stays readable.
         for (int y = 0; y < height; y += 2) {
-            ctx.fill(0, y, width, Math.min(height, y + 2), lerp(TOP_BG, BOTTOM_BG, y / (float) height));
-        }
-        // Soft purple glow top-right and cyan haze along the bottom.
-        for (int y = 0; y < height / 2; y += 2) {
-            float t = y / (height / 2f);
-            ctx.fill(width / 2, y, width, Math.min(height, y + 2), lerp(0x26A855F7, 0x00A855F7, t));
-        }
-        for (int y = (int) (height * 0.6); y < height; y += 2) {
-            float t = (y - height * 0.6f) / (height * 0.4f);
-            ctx.fill(0, y, width, Math.min(height, y + 2), lerp(0x0022D3EE, 0x2222D3EE, t));
+            ctx.fill(0, y, width, Math.min(height, y + 2), lerp(0x66070910, 0xD8070910, y / (float) height));
         }
     }
 
