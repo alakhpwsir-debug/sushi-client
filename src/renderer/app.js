@@ -44,7 +44,16 @@
     modQuery: '',
     settingsTab: 'game',
     versionAll: false,
+    accMenu: false,
+    content: { news: [], servers: [] },
   };
+
+  const GRADS = [
+    'linear-gradient(135deg,#0e7490,#22d3ee)',
+    'linear-gradient(135deg,#6d28d9,#c084fc)',
+    'linear-gradient(135deg,#1e1b4b,#7c3aed)',
+    'linear-gradient(135deg,#155e75,#a855f7)',
+  ];
 
   const profiles = () => S.settings.profiles;
   const active = () => profiles().find((p) => p.id === S.settings.activeProfileId) || profiles()[0];
@@ -90,10 +99,13 @@
           </div>
           <div class="right-tools">
             <span class="status-pill"><span class="dot"></span>${esc(p.name)} · ${esc(p.mc)} ${p.fabric ? '· Fabric' : ''}</span>
-            <button class="chip" data-act="page" data-page="accounts">
-              <span class="avatar">${acc ? initials(acc.username) : '?'}</span>
-              <span>${acc ? esc(acc.username) : 'Sign in'}<small>${acc ? (acc.type === 'microsoft' ? 'Microsoft' : 'Offline') : 'Add an account'}</small></span>
-            </button>
+            <div class="dd-wrap">
+              <button class="chip" data-act="acc-menu">
+                <span class="avatar">${acc ? initials(acc.username) : '?'}</span>
+                <span>${acc ? esc(acc.username) : 'Sign in'}<small>${acc ? (acc.type === 'microsoft' ? 'Microsoft' : 'Offline') : 'Add an account'}</small></span>
+              </button>
+              ${S.accMenu ? accDropdown() : ''}
+            </div>
           </div>
         </header>
         <section class="content" id="content">${pageHtml()}</section>
@@ -110,6 +122,9 @@
       <div class="pb-info">
         <div class="name">${esc(p.name)}</div>
         <div class="meta">${esc(p.mc)} · ${loaderLabel(p)}${p.fabric ? ` · ${mods} mods` : ''} · ${esc(presetLabel(p.fpsPreset))}</div>
+        <select class="quick" data-change="quick-profile" aria-label="Switch profile">
+          ${profiles().map((x) => `<option value="${esc(x.id)}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)} · ${esc(x.mc)} ${x.fabric ? 'Fabric' : 'Vanilla'}</option>`).join('')}
+        </select>
       </div>
       <div class="pb-mid">
         <div class="pb-status">${esc(acc ? `Playing as ${acc.username}` : 'Add an account to play')} — ${esc(S.status)}</div>
@@ -134,16 +149,26 @@
   function homePage() {
     const p = active();
     const acc = activeAcc();
-    const news = [
-      { tag: 'Update', tagc: '', title: 'Sushi Core: module menu', text: 'Press Right Shift in game to toggle FPS, CPS, keystrokes, ping and coordinates.', grad: 'linear-gradient(135deg,#0e7490,#22d3ee)' },
-      { tag: 'Guide', tagc: 'p', title: 'Pick an FPS preset', text: 'Max FPS trades visuals for speed. Balanced keeps shadows and particles.', grad: 'linear-gradient(135deg,#6d28d9,#c084fc)' },
-      { tag: 'Roadmap', tagc: 'g', title: 'Coming next', text: 'Cosmetics, server list and a news feed are planned. Android comes after Windows.', grad: 'linear-gradient(135deg,#1e1b4b,#7c3aed)' },
-    ];
-    const newsHtml = news.map((n) => `
-      <article class="news-card">
-        <div class="news-top" style="background:${n.grad}"></div>
-        <div class="news-body"><span class="tag ${n.tagc}">${esc(n.tag)}</span><h4>${esc(n.title)}</h4><p>${esc(n.text)}</p></div>
-      </article>`).join('');
+    const news = (S.content.news || []).slice(0, 3);
+    const servers = S.content.servers || [];
+    const newsHtml = news.map((n, i) => `
+      <article class="news-card ${n.url ? 'linkable' : ''}" ${n.url ? `data-act="open-news" data-url="${esc(n.url)}"` : ''}>
+        <div class="news-top" style="background:${GRADS[i % GRADS.length]}"></div>
+        <div class="news-body"><span class="tag ${i === 1 ? 'p' : i === 2 ? 'g' : ''}">${esc(n.tag || 'News')}</span><h4>${esc(n.title)}</h4><p>${esc(n.text)}</p></div>
+      </article>`).join('') || '<div class="muted small">No news yet.</div>';
+    const serversHtml = servers.map((sv, i) => `
+      <div class="srv">
+        <div class="srv-top" style="background:${GRADS[(i + 1) % GRADS.length]}"><span class="tag">${esc(sv.tag || 'Server')}</span></div>
+        <div class="srv-body">
+          <h4>${esc(sv.name)}</h4>
+          <p>${esc(sv.desc || '')}</p>
+          <div class="small muted">${esc(sv.address)}</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn sm primary" data-act="join" data-addr="${esc(sv.address)}">Join</button>
+            <button class="btn sm" data-act="copy-ip" data-addr="${esc(sv.address)}">Copy IP</button>
+          </div>
+        </div>
+      </div>`).join('') || '<div class="muted small">No servers listed yet. Add them in assets/content.json.</div>';
     return `
       <div class="stack">
         <section class="hero">
@@ -167,6 +192,10 @@
               <span class="tag">${esc(p.mc)}</span><span class="tag p">${loaderLabel(p)}</span><span class="tag g">${esc(presetLabel(p.fpsPreset))}</span>
             </div>
           </div>
+        </section>
+        <section class="panel">
+          <div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">Servers</h3><span class="small muted">Join uses the active profile</span></div>
+          <div class="srv-row">${serversHtml}</div>
         </section>
         <div class="grid2">
           <section class="panel">
@@ -236,6 +265,7 @@
           <label class="field"><span>FPS preset</span><select data-change="profile-preset" data-id="${ed.id}">${presetOpts}</select></label>
           <div class="row" style="margin-top:6px">
             ${isActive ? '<span class="tag">Active profile</span>' : `<button class="btn primary sm" data-act="activate" data-id="${ed.id}">Set as active</button>`}
+            <button class="btn sm" data-act="open-mods" data-id="${ed.id}">Open mods folder</button>
             <button class="btn sm" data-act="duplicate" data-id="${ed.id}">Duplicate</button>
             <button class="btn sm danger" data-act="delete" data-id="${ed.id}" ${profiles().length < 2 ? 'disabled' : ''}>Delete</button>
           </div>
@@ -256,6 +286,7 @@
       <div class="toolbar">
         <input type="text" id="modq" placeholder="Search mods" value="${esc(S.modQuery)}" data-input="mod-q"/>
         ${cats}
+        <button class="btn sm" data-act="open-mods" style="margin-left:auto">Open mods folder</button>
       </div>
       <div class="mgrid" id="modgrid">${modCards()}</div>`;
   }
@@ -356,7 +387,7 @@
   /* ---------- settings ---------- */
   function settingsPage() {
     const s = S.settings;
-    const tabs = [['game', 'Game'], ['java', 'Java'], ['azure', 'Microsoft'], ['launcher', 'Launcher']]
+    const tabs = [['game', 'Game'], ['appearance', 'Appearance'], ['java', 'Java'], ['azure', 'Microsoft'], ['launcher', 'Launcher']]
       .map(([k, l]) => `<button class="tab ${S.settingsTab === k ? 'on' : ''}" data-act="stab" data-tab="${k}">${l}</button>`).join('');
     let body = '';
     if (S.settingsTab === 'game') {
@@ -366,6 +397,8 @@
             <input type="range" min="2048" max="16384" step="512" value="${s.memoryMB}" data-input="mem" data-set="memoryMB"/></div></div>
         <div class="setting"><div class="txt"><b>Resolution</b><span>Starting window size.</span></div>
           <div class="ctl row"><input type="number" min="640" max="7680" value="${s.width}" data-change="set" data-set="width" style="flex:1"/><span class="muted">×</span><input type="number" min="480" max="4320" value="${s.height}" data-change="set" data-set="height" style="flex:1"/></div></div>`;
+    } else if (S.settingsTab === 'appearance') {
+      body = appearanceBody(s);
     } else if (S.settingsTab === 'java') {
       body = `
         <div class="setting"><div class="txt"><b>Java path</b><span>Leave empty to let Sushi download Java 21 for you.</span></div>
@@ -376,6 +409,8 @@
           <div class="ctl"><input type="text" value="${esc(s.msClientId)}" placeholder="00000000-0000-0000-0000-000000000000" data-change="set" data-set="msClientId"/></div></div>`;
     } else {
       body = `
+        <div class="setting"><div class="txt"><b>News and servers source</b><span>Optional https link to a JSON file with news and servers. Empty uses the built-in list.</span></div>
+          <div class="ctl"><input type="text" value="${esc(s.contentUrl)}" placeholder="https://example.com/sushi-content.json" data-change="set" data-set="contentUrl"/></div></div>
         <div class="setting"><div class="txt"><b>Sushi folder</b><span>Instances, mods, settings and accounts live here.</span></div>
           <div class="ctl"><button class="btn" data-act="open-folder">Open folder</button></div></div>
         <div class="setting"><div class="txt"><b>Reset profiles</b><span>Restore the built-in profiles. Your accounts are kept.</span></div>
@@ -384,9 +419,46 @@
     return `<div class="panel" style="max-width:820px"><div class="tabs">${tabs}</div>${body}</div>`;
   }
 
+  function accDropdown() {
+    const items = S.accounts.accounts.map((a) => `
+      <button class="dd-item ${a.id === S.accounts.activeId ? 'on' : ''}" data-act="acc-select" data-id="${esc(a.id)}">
+        <span class="avatar sm">${initials(a.username)}</span>
+        <span>${esc(a.username)}<small>${a.type === 'microsoft' ? 'Microsoft' : 'Offline'}</small></span>
+        ${a.id === S.accounts.activeId ? '<b>✓</b>' : ''}
+      </button>`).join('') || '<div class="dd-title" style="text-transform:none;letter-spacing:0">No accounts yet</div>';
+    return `
+      <div class="dropdown">
+        <div class="dd-title">Switch account</div>
+        ${items}
+        <div class="dd-sep"></div>
+        <button class="dd-item" data-act="page" data-page="accounts">+ Add or manage accounts</button>
+      </div>`;
+  }
+
+  function appearanceBody(s) {
+    const opts = [
+      ['aurora', 'Aurora', 'Cyan and purple glow (default).'],
+      ['midnight', 'Midnight', 'Near-black with a faint cyan glow.'],
+      ['nebula', 'Nebula', 'Heavy purple haze.'],
+      ['custom', 'Custom image', 'Your own picture behind the launcher.'],
+    ];
+    const cards = opts.map(([k, l, d]) => `
+      <button class="bg-opt ${s.background === k ? 'on' : ''}" data-act="bg" data-key="${k}">
+        <span class="sw sw-${k}"></span><b>${l}</b><span class="small muted">${d}</span>
+      </button>`).join('');
+    return `
+      <div class="bg-grid">${cards}</div>
+      <div class="setting" style="margin-top:18px">
+        <div class="txt"><b>Custom image</b><span>PNG or JPG, up to 2.5 MB. Saved in your settings file.</span></div>
+        <div class="ctl"><label class="btn" style="display:inline-block;cursor:pointer">Choose image<input type="file" accept="image/png,image/jpeg" data-change="bg-file" hidden/></label></div>
+      </div>`;
+  }
+
   /* ---------- render ---------- */
   function render() {
     if (!S.settings) return;
+    app.className = `app bg-${S.settings.background || 'aurora'}`;
+    app.style.setProperty('--custom-bg', S.settings.customBackground ? `url("${S.settings.customBackground}")` : 'none');
     app.innerHTML = shell();
   }
 
@@ -402,17 +474,17 @@
   }
 
   /* ---------- actions ---------- */
-  async function launch() {
+  async function launch(server = '') {
     if (S.running) return;
     if (!activeAcc()) { toast('Add an account first.', 'bad'); S.page = 'accounts'; render(); return; }
     const p = active();
     S.running = true;
     S.busy = true;
     S.status = 'Preparing…';
-    S.logs.push(`> Launching ${p.name} (${p.mc}${p.fabric ? ', Fabric' : ''})`);
+    S.logs.push(server ? `> Joining ${server} with ${p.name} (${p.mc}${p.fabric ? ', Fabric' : ''})` : `> Launching ${p.name} (${p.mc}${p.fabric ? ', Fabric' : ''})`);
     render();
     try {
-      await window.sushi.game.launch(p.id);
+      await window.sushi.game.launch(p.id, server || null);
       S.busy = false;
       S.status = 'Minecraft is running';
       toast('Minecraft started. Right Shift opens the Sushi menu.', 'ok');
@@ -433,6 +505,12 @@
         render();
         break;
       case 'launch': await launch(); break;
+      case 'join': await launch(el.dataset.addr); break;
+      case 'copy-ip':
+        await window.sushi.app.copy(el.dataset.addr);
+        toast(`Copied ${el.dataset.addr}`, 'ok');
+        break;
+      case 'open-news': window.sushi.app.openUrl(el.dataset.url); break;
       case 'edit-profile':
         S.editId = el.dataset.id; render(); break;
       case 'activate':
@@ -491,6 +569,7 @@
         break;
       }
       case 'acc-select':
+        S.accMenu = false;
         await window.sushi.accounts.select(el.dataset.id);
         S.accounts = await window.sushi.accounts.list();
         render();
@@ -501,6 +580,17 @@
         render();
         break;
       case 'log-clear': S.logs = []; render(); break;
+      case 'acc-menu': S.accMenu = !S.accMenu; render(); break;
+      case 'open-mods': {
+        const id = el.dataset.id || active().id;
+        const dir = await window.sushi.profile.openMods(id);
+        toast(`Opened ${dir}`, 'ok');
+        break;
+      }
+      case 'bg':
+        S.settings = await window.sushi.settings.set({ background: el.dataset.key });
+        render();
+        break;
       case 'stab': S.settingsTab = el.dataset.tab; render(); break;
       case 'open-folder': window.sushi.app.openFolder(); break;
       case 'reset-profiles':
@@ -514,6 +604,10 @@
   }
 
   document.addEventListener('click', (e) => {
+    if (S.accMenu && !e.target.closest('.dd-wrap')) {
+      S.accMenu = false;
+      render();
+    }
     const el = e.target.closest('[data-act]');
     if (!el || el.disabled) return;
     act(el.dataset.act, el).catch((err) => toast(err.message, 'bad'));
@@ -524,7 +618,22 @@
     const kind = el.dataset.change;
     if (!kind) return;
     try {
-      if (kind === 'profile-name') {
+      if (kind === 'quick-profile') {
+        S.editId = el.value;
+        await saveSettings({ activeProfileId: el.value });
+      } else if (kind === 'bg-file') {
+        const f = el.files && el.files[0];
+        if (!f) return;
+        if (f.size > 2.5 * 1024 * 1024) { toast('That image is over 2.5 MB. Pick a smaller one.', 'bad'); return; }
+        const url = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(f);
+        });
+        await saveSettings({ background: 'custom', customBackground: url });
+        toast('Background updated.', 'ok');
+      } else if (kind === 'profile-name') {
         const name = el.value.trim() || 'Untitled';
         await updateProfile(el.dataset.id, { name });
       } else if (kind === 'profile-mc') {
@@ -546,6 +655,7 @@
         if (['memoryMB', 'width', 'height'].includes(key)) value = Math.round(Number(value));
         if (key === 'memoryMB') value = Math.min(16384, Math.max(2048, value));
         await saveSettings({ [key]: value });
+        if (key === 'contentUrl') S.content = await window.sushi.content.get();
         toast('Saved.', 'ok');
       }
     } catch (err) { toast(err.message, 'bad'); }
@@ -592,13 +702,15 @@
   });
 
   async function boot() {
-    const [settings, accounts, catalog, presets, versions] = await Promise.all([
+    const [settings, accounts, catalog, presets, versions, content] = await Promise.all([
       window.sushi.settings.get(),
       window.sushi.accounts.list(),
       window.sushi.mods.catalog(),
       window.sushi.fps.presets(),
       window.sushi.versions.list().catch(() => []),
+      window.sushi.content.get().catch(() => ({ news: [], servers: [] })),
     ]);
+    S.content = content;
     S.settings = settings;
     S.accounts = accounts;
     S.catalog = catalog;

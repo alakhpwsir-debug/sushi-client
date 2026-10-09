@@ -9,13 +9,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-/** HUD module toggles, stored in config/sushi-core.properties. */
+/** Module and HUD layout settings, stored in config/sushi-core.properties. */
 public final class SushiConfig {
-    public static boolean fps = true;
-    public static boolean cps = true;
-    public static boolean keystrokes = true;
-    public static boolean ping = true;
-    public static boolean coords = false;
+    public static final String[] KEYS = {"fps", "cps", "keystrokes", "ping", "coords"};
+    public static final String[] NAMES = {"FPS", "CPS", "Keystrokes", "Ping", "Coordinates"};
+    public static final String[] DESCS = {"Frames per second", "Clicks per second", "Keys as you press them", "Connection latency", "Your block position"};
+    public static final int[] SCALES = {50, 75, 100, 125, 150, 200};
+
+    public static final boolean[] enabled = {true, true, true, true, false};
+    /** Screen position in GUI pixels. -1 means "use the default spot". */
+    public static final int[] x = {-1, -1, -1, -1, -1};
+    public static final int[] y = {-1, -1, -1, -1, -1};
+    public static final int[] scale = {100, 100, 100, 100, 100};
+    public static final boolean[] bg = {true, true, true, true, true};
+    public static boolean cpsRight = true;
+    public static boolean coordsY = true;
 
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("sushi-core.properties");
 
@@ -27,23 +35,33 @@ public final class SushiConfig {
             try (InputStream in = Files.newInputStream(FILE)) {
                 p.load(in);
             } catch (IOException ignored) {
-                // Fall back to defaults if the file is unreadable.
+                // Defaults are used if the file is unreadable.
             }
         }
-        fps = Boolean.parseBoolean(p.getProperty("fps", "true"));
-        cps = Boolean.parseBoolean(p.getProperty("cps", "true"));
-        keystrokes = Boolean.parseBoolean(p.getProperty("keystrokes", "true"));
-        ping = Boolean.parseBoolean(p.getProperty("ping", "true"));
-        coords = Boolean.parseBoolean(p.getProperty("coords", "false"));
+        for (int i = 0; i < KEYS.length; i++) {
+            String k = KEYS[i];
+            enabled[i] = bool(p, k + ".enabled", enabled[i]);
+            x[i] = integer(p, k + ".x", -1);
+            y[i] = integer(p, k + ".y", -1);
+            scale[i] = Math.max(50, Math.min(200, integer(p, k + ".scale", 100)));
+            bg[i] = bool(p, k + ".bg", true);
+        }
+        cpsRight = bool(p, "cps.right", true);
+        coordsY = bool(p, "coords.y", true);
     }
 
     public static void save() {
         Properties p = new Properties();
-        p.setProperty("fps", String.valueOf(fps));
-        p.setProperty("cps", String.valueOf(cps));
-        p.setProperty("keystrokes", String.valueOf(keystrokes));
-        p.setProperty("ping", String.valueOf(ping));
-        p.setProperty("coords", String.valueOf(coords));
+        for (int i = 0; i < KEYS.length; i++) {
+            String k = KEYS[i];
+            p.setProperty(k + ".enabled", String.valueOf(enabled[i]));
+            p.setProperty(k + ".x", String.valueOf(x[i]));
+            p.setProperty(k + ".y", String.valueOf(y[i]));
+            p.setProperty(k + ".scale", String.valueOf(scale[i]));
+            p.setProperty(k + ".bg", String.valueOf(bg[i]));
+        }
+        p.setProperty("cps.right", String.valueOf(cpsRight));
+        p.setProperty("coords.y", String.valueOf(coordsY));
         try {
             Files.createDirectories(FILE.getParent());
             try (OutputStream out = Files.newOutputStream(FILE)) {
@@ -51,6 +69,18 @@ public final class SushiConfig {
             }
         } catch (IOException ignored) {
             // Settings simply won't persist if the config folder is not writable.
+        }
+    }
+
+    private static boolean bool(Properties p, String key, boolean def) {
+        return Boolean.parseBoolean(p.getProperty(key, String.valueOf(def)));
+    }
+
+    private static int integer(Properties p, String key, int def) {
+        try {
+            return Integer.parseInt(p.getProperty(key, String.valueOf(def)).trim());
+        } catch (NumberFormatException e) {
+            return def;
         }
     }
 }

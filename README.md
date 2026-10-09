@@ -35,8 +35,7 @@ gradle build
 cp build/libs/sushi-core-0.2.0.jar ../../assets/mods/sushi-core-1.21.1.jar
 ```
 
-HUD colors are cyan and purple (`SushiTheme.java`). Press **Right Shift** in game to open the module menu and switch FPS, CPS, keystrokes, ping and coordinates on or off. Settings are saved to `config/sushi-core.properties`.
-
+HUD colors are cyan and purple (`SushiTheme.java`). Each module is its own HUD element. Use **Options** on a module card for scale, background and module toggles, and **Edit HUD layout** to drag elements into place. Positions are saved in `config/sushi-core.properties`. Press **Right Shift** in game to open the module menu and switch FPS, CPS, keystrokes, ping and coordinates on or off. 
 Fabric API is required by Sushi Core. The launcher always installs it (`REQUIRED_SLUGS` in `src/launcher/mods.js`).
 
 ## Project layout
@@ -96,3 +95,21 @@ Important: Mojang/Microsoft restrict Minecraft API access for new launcher apps.
 2. **0.2:** Sushi Core in-game Fabric mod: CPS counter, keystrokes, minimap, zoom, custom HUD.
 3. **0.3:** Cosmetics system, server list, news from a JSON feed you control.
 4. **0.4:** Android app (Capacitor wrapper around the same UI, with a native launcher core for mobile).
+
+## Home content (news and servers)
+
+News and servers come from `assets/content.json`. Edit that file and rebuild, or set **Settings → Launcher → News and servers source** to an https JSON URL with the same shape:
+
+```json
+{ "news": [{ "tag": "Update", "title": "...", "text": "...", "url": "https://..." }],
+  "servers": [{ "name": "...", "address": "play.example.com", "tag": "SMP", "desc": "..." }] }
+```
+
+**Join** launches the active profile and connects straight to the server (Minecraft's quick play, 1.20 and newer). **Copy IP** copies the address. The sample servers are placeholders.
+
+## Launcher features
+
+- **Header account switcher:** click the account chip to switch accounts.
+- **Play bar profile switcher:** pick a profile without leaving the page.
+- **Open mods folder:** on the Mods page or in a profile's editor. Launch a Fabric profile once first so its folder exists.
+- **Settings → Appearance:** Aurora, Midnight, Nebula, or your own image (PNG or JPG, up to 2.5 MB).

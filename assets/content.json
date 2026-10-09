@@ -1,0 +1,11 @@
+{
+  "news": [
+    { "tag": "Update", "title": "Sushi Core: module menu", "text": "Press Right Shift in game to open the Sushi menu. Turn modules on or off, set their scale and background, and drag HUD elements into place." },
+    { "tag": "Guide", "title": "Pick an FPS preset", "text": "Max FPS trades visuals for speed. Balanced keeps shadows and particles." },
+    { "tag": "Roadmap", "title": "Coming next", "text": "Cosmetics, a real news feed and friends are planned. Android comes after Windows feedback." }
+  ],
+  "servers": [
+    { "name": "Example Survival", "address": "play.example.com", "tag": "EXAMPLE", "desc": "Sample entry. Replace it with your own server in assets/content.json." },
+    { "name": "Example PvP", "address": "pvp.example.com", "tag": "EXAMPLE", "desc": "Each server card has Join and Copy IP buttons." }
+  ]
+}

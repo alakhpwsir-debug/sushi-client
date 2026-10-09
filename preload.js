@@ -15,9 +15,11 @@ contextBridge.exposeInMainWorld('sushi', {
     remove: invoke('accounts:remove'),
   },
   game: { launch: invoke('game:launch') },
+  content: { get: invoke('content:get') },
+  profile: { openMods: invoke('profile:openMods') },
   mods: { catalog: invoke('mods:catalog') },
   fps: { presets: invoke('fps:presets') },
-  app: { root: invoke('app:root'), openFolder: invoke('app:openFolder'), openUrl: invoke('app:openUrl') },
+  app: { root: invoke('app:root'), openFolder: invoke('app:openFolder'), openUrl: invoke('app:openUrl'), copy: invoke('app:copy') },
   on: (channel, cb) => {
     if (EVENTS.includes(channel)) ipcRenderer.on(channel, (_e, data) => cb(data));
   },

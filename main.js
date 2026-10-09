@@ -1,10 +1,11 @@
 // Sushi Client - Electron main process (talks to the launcher core in src/launcher).
-const { app, BrowserWindow, ipcMain, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, safeStorage, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { ROOT, dirs } = require('./src/launcher/paths');
 const core = require('./src/launcher');
 const auth = require('./src/launcher/auth');
+const { fetchJson } = require('./src/launcher/http');
 
 const paths = dirs(ROOT);
 
@@ -25,7 +26,23 @@ const DEFAULT_SETTINGS = {
   height: 720,
   profiles: DEFAULT_PROFILES,
   activeProfileId: 'sushi',
+  background: 'aurora',
+  customBackground: '',
+  contentUrl: '',
 };
+
+// Finds the mods folder for a profile. Fabric instances are named after the Fabric profile id,
+// so we pick the newest fabric-loader-* folder that matches the Minecraft version.
+function modsFolderFor(p) {
+  const inst = paths.instances;
+  if (!p.fabric) return path.join(inst, p.mc, 'mods');
+  const found = fs.existsSync(inst)
+    ? fs.readdirSync(inst).filter((n) => n.startsWith('fabric-loader-') && n.endsWith(`-${p.mc}`))
+    : [];
+  found.sort((a, b) => fs.statSync(path.join(inst, b)).mtimeMs - fs.statSync(path.join(inst, a)).mtimeMs);
+  if (!found.length) throw new Error('Launch this profile once first so Fabric can install, then open the mods folder.');
+  return path.join(inst, found[0], 'mods');
+}
 
 function readJson(file, fallback) {
   try {
@@ -108,6 +125,15 @@ function registerIpc() {
     return next;
   });
 
+  ipcMain.handle('profile:openMods', async (_e, id) => {
+    const profile = readSettings().profiles.find((x) => x.id === id);
+    if (!profile) throw new Error('That profile no longer exists.');
+    const dir = modsFolderFor(profile);
+    fs.mkdirSync(dir, { recursive: true });
+    await shell.openPath(dir);
+    return dir;
+  });
+
   ipcMain.handle('versions:list', () => core.listVersions());
 
   ipcMain.handle('accounts:list', () => {
@@ -143,7 +169,7 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('game:launch', async (e, profileId) => {
+  ipcMain.handle('game:launch', async (e, profileId, quickServer) => {
     const s = readSettings();
     const profile = s.profiles.find((p) => p.id === (profileId || s.activeProfileId));
     if (!profile) throw new Error('That profile no longer exists.');
@@ -163,6 +189,7 @@ function registerIpc() {
         mods: profile.fabric ? profile.mods : [],
         width: s.width,
         height: s.height,
+        quickServer: /^[A-Za-z0-9.\-:_\[\]]{1,255}$/.test(String(quickServer || '')) ? String(quickServer) : null,
         bundledModsDir: path.join(__dirname, 'assets', 'mods'),
       },
       emit,
@@ -173,6 +200,28 @@ function registerIpc() {
   ipcMain.handle('fps:presets', () =>
     Object.fromEntries(Object.entries(core.FPS_PRESETS).map(([k, p]) => [k, { label: p.label, description: p.description }])),
   );
+  ipcMain.handle('app:copy', (_e, text) => {
+    clipboard.writeText(String(text || '').slice(0, 255));
+    return true;
+  });
+
+  // News and servers: an optional https JSON link from Settings, else the bundled assets/content.json.
+  ipcMain.handle('content:get', async () => {
+    const bundled = readJson(path.join(__dirname, 'assets', 'content.json'), { news: [], servers: [] });
+    const url = readSettings().contentUrl;
+    if (url && /^https:\/\//.test(url)) {
+      try {
+        const remote = await fetchJson(url);
+        if (remote && typeof remote === 'object') {
+          return { news: remote.news || [], servers: remote.servers || [], source: 'remote' };
+        }
+      } catch {
+        // Fall back to the bundled list below.
+      }
+    }
+    return { news: bundled.news || [], servers: bundled.servers || [], source: 'bundled' };
+  });
+
   ipcMain.handle('app:openFolder', () => shell.openPath(ROOT));
   ipcMain.handle('app:openUrl', (_e, url) => {
     if (/^https:\/\//.test(url)) shell.openExternal(url);

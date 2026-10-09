@@ -27,6 +27,7 @@ function buildCommand({
   extraJvm = [],
   width = 1280,
   height = 720,
+  quickServer = null,
 }) {
   const d = dirs(root);
   const sep = process.platform === 'win32' ? ';' : ':';
@@ -67,6 +68,7 @@ function buildCommand({
 
   const jvm = jvmTpl.filter((a) => !a.includes('FabricMcEmu')).map((a) => fill(a, vars));
   const game = gameTpl.map((a) => fill(a, vars));
+  if (quickServer) game.push('--quickPlayMultiplayer', quickServer);
 
   const args = [`-Xmx${memoryMB}M`, '-Xms512M', ...extraJvm, ...jvm, resolved.mainClass, ...game];
   return { exe: javaPath, args };

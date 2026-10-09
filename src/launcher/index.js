@@ -16,6 +16,11 @@ const { listVersions } = require('./versions');
  * emit(channel, payload): used to stream status/log lines to the UI.
  * Resolves with the game process id once Minecraft has started.
  */
+// --quickPlayMultiplayer exists from 1.20 onward. Older versions would reject it.
+function supportsQuickPlay(mc) {
+  return /^1\.2\d(\.|$)/.test(mc);
+}
+
 async function launchGame(opts, emit) {
   const { root, mc, fabric, account, bundledModsDir } = opts;
   const d = dirs(root);
@@ -52,6 +57,7 @@ async function launchGame(opts, emit) {
     extraJvm,
     width: opts.width || 1280,
     height: opts.height || 720,
+    quickServer: supportsQuickPlay(mc) ? opts.quickServer || null : null,
   });
 
   status('Starting Minecraft...');
