@@ -8,14 +8,23 @@ const auth = require('./src/launcher/auth');
 
 const paths = dirs(ROOT);
 
+const DEFAULT_MODS = ['fabric-api', 'sushi-core', 'sodium', 'lithium', 'ferrite-core', 'modernfix', 'entityculling', 'immediatelyfast', 'modmenu'];
+
+// Profiles bundle a version, loader, FPS preset and mod list. The active one is used for Launch.
+const DEFAULT_PROFILES = [
+  { id: 'sushi', name: 'Sushi Default', mc: '1.21.1', fabric: true, fpsPreset: 'max', mods: DEFAULT_MODS },
+  { id: 'balanced', name: 'Balanced', mc: '1.21.1', fabric: true, fpsPreset: 'balanced', mods: DEFAULT_MODS },
+  { id: 'vanilla', name: 'Vanilla 1.21.1', mc: '1.21.1', fabric: false, fpsPreset: 'off', mods: [] },
+];
+
 const DEFAULT_SETTINGS = {
   memoryMB: 6144,
   javaPath: '',
-  fpsPreset: 'max',
-  enabledMods: ['sushi-core', 'sodium', 'lithium', 'ferrite-core', 'entityculling', 'immediatelyfast', 'modernfix', 'modmenu'],
   msClientId: '',
-  lastVersion: '1.21.1',
-  fabric: true,
+  width: 1280,
+  height: 720,
+  profiles: DEFAULT_PROFILES,
+  activeProfileId: 'sushi',
 };
 
 function readJson(file, fallback) {
@@ -93,6 +102,12 @@ function registerIpc() {
     return next;
   });
 
+  ipcMain.handle('settings:resetProfiles', () => {
+    const next = { ...readSettings(), profiles: DEFAULT_PROFILES, activeProfileId: DEFAULT_SETTINGS.activeProfileId };
+    writeJson(paths.settings, next);
+    return next;
+  });
+
   ipcMain.handle('versions:list', () => core.listVersions());
 
   ipcMain.handle('accounts:list', () => {
@@ -128,8 +143,10 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('game:launch', async (e, { mc, fabric }) => {
+  ipcMain.handle('game:launch', async (e, profileId) => {
     const s = readSettings();
+    const profile = s.profiles.find((p) => p.id === (profileId || s.activeProfileId));
+    if (!profile) throw new Error('That profile no longer exists.');
     const account = await activeAccount();
     const emit = (channel, data) => {
       if (!e.sender.isDestroyed()) e.sender.send(channel, data);
@@ -137,13 +154,15 @@ function registerIpc() {
     return core.launchGame(
       {
         root: ROOT,
-        mc,
-        fabric,
+        mc: profile.mc,
+        fabric: profile.fabric,
         account,
         memoryMB: s.memoryMB,
         javaPath: s.javaPath,
-        fpsPreset: s.fpsPreset,
-        mods: fabric ? s.enabledMods : [],
+        fpsPreset: profile.fpsPreset,
+        mods: profile.fabric ? profile.mods : [],
+        width: s.width,
+        height: s.height,
         bundledModsDir: path.join(__dirname, 'assets', 'mods'),
       },
       emit,
@@ -165,12 +184,12 @@ let win = null;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1360,
+    height: 840,
     minWidth: 980,
     minHeight: 640,
     title: 'Sushi Client',
-    backgroundColor: '#0d1410',
+    backgroundColor: '#070910',
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

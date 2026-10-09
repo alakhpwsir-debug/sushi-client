@@ -2,141 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sushi Client</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <nav class="rail">
-    <div class="logo" title="Sushi Client">
-      <svg viewBox="0 0 64 64" width="38" height="38" aria-hidden="true">
-        <circle cx="32" cy="32" r="30" fill="#1b2e22" />
-        <circle cx="32" cy="32" r="20" fill="#f4efe6" />
-        <circle cx="32" cy="32" r="11" fill="#ff7f5c" />
-        <circle cx="32" cy="32" r="4.5" fill="#9ccc65" />
-      </svg>
-    </div>
-    <button class="rail-btn active" data-view="home"><span class="ico">&#8962;</span><span>Home</span></button>
-    <button class="rail-btn" data-view="mods"><span class="ico">&#9881;</span><span>Mods</span></button>
-    <button class="rail-btn" data-view="fps"><span class="ico">&#9889;</span><span>FPS</span></button>
-    <button class="rail-btn" data-view="console"><span class="ico">&#9638;</span><span>Console</span></button>
-    <button class="rail-btn" data-view="accounts"><span class="ico">&#9786;</span><span>Accounts</span></button>
-    <button class="rail-btn" data-view="settings"><span class="ico">&#9776;</span><span>Settings</span></button>
-    <div class="rail-foot muted small">v0.1.0</div>
-  </nav>
-
-  <div class="shell">
-    <header class="topbar">
-      <div class="title">Sushi<span>Client</span></div>
-      <div class="chip" id="activeUser" data-view-link="accounts">No account</div>
-    </header>
-
-    <main>
-      <section id="view-home" class="view active">
-        <div class="hero">
-          <div class="hero-tag">NEW</div>
-          <h1>Sushi Core HUD</h1>
-          <p>FPS, CPS, keystrokes, ping and coordinates, built into Minecraft 1.21.1. Press <kbd>Right Shift</kbd> in game to hide it.</p>
-          <button class="btn ghost" data-go="mods">Manage mods</button>
-        </div>
-
-        <h2>Performance</h2>
-        <div class="grid">
-          <div class="card"><div class="tag">Preset</div><h3 id="homePreset">Max FPS</h3><p class="muted small">Garbage collector tuning, a fixed heap, and lower visual load.</p><button class="btn small" data-go="fps">Change preset</button></div>
-          <div class="card"><div class="tag">Mods</div><h3 id="homeMods">8 mods enabled</h3><p class="muted small">Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast and ModernFix are on by default.</p><button class="btn small" data-go="mods">Edit mods</button></div>
-          <div class="card"><div class="tag">Java</div><h3>Automatic</h3><p class="muted small">Java 21 is downloaded for 1.21.1, so you don't need to install anything.</p></div>
-        </div>
-
-        <h2>News</h2>
-        <div class="grid">
-          <div class="card"><div class="tag">Update</div><h3>Sushi Client 0.1.0</h3><p class="muted small">Launcher, Fabric, FPS presets and the Sushi Core HUD.</p></div>
-          <div class="card"><div class="tag">Roadmap</div><h3>Coming next</h3><p class="muted small">Zoom, minimap, waypoints and a Sushi settings screen.</p></div>
-        </div>
-      </section>
-
-      <section id="view-mods" class="view">
-        <h2>Mods</h2>
-        <p class="muted">Mods install when you press Play (Fabric required). Sushi Core is bundled and only works on 1.21.1.</p>
-        <div id="modList" class="grid"></div>
-      </section>
-
-      <section id="view-fps" class="view">
-        <h2>FPS Boost</h2>
-        <p class="muted">Presets tune Java's garbage collector and your options.txt. The choice applies on the next launch.</p>
-        <div id="fpsList" class="grid"></div>
-      </section>
-
-      <section id="view-console" class="view">
-        <h2>Console</h2>
-        <pre id="console" class="console"></pre>
-      </section>
-
-      <section id="view-accounts" class="view">
-        <h2>Accounts</h2>
-        <div class="panel">
-          <h3>Microsoft account</h3>
-          <p class="muted small">Required to join online servers with your own Minecraft account.</p>
-          <button id="msLogin" class="btn primary">Sign in with Microsoft</button>
-          <div id="msCode" class="ms-code hidden">
-            <div>Enter this code on the Microsoft page:</div>
-            <div id="msCodeValue" class="code"></div>
-            <button id="msOpen" class="btn small">Open page again</button>
-          </div>
-        </div>
-        <div class="panel">
-          <h3>Offline account</h3>
-          <p class="muted small">For testing and LAN only. Most servers won't accept offline names.</p>
-          <div class="form-row inline">
-            <input id="offlineName" placeholder="Username (3-16 characters)" maxlength="16" />
-            <button id="offlineAdd" class="btn">Add</button>
-          </div>
-        </div>
-        <h3>Saved accounts</h3>
-        <div id="accountList" class="list"></div>
-      </section>
-
-      <section id="view-settings" class="view">
-        <h2>Settings</h2>
-        <div class="panel">
-          <div class="form-row">
-            <label for="memory">Memory: <span id="memoryOut"></span></label>
-            <input id="memory" type="range" min="2048" max="16384" step="512" />
-          </div>
-          <div class="form-row">
-            <label for="javaPath">Java path (leave empty to auto-install)</label>
-            <input id="javaPath" placeholder="C:\Program Files\Java\jdk-21\bin\java.exe" />
-          </div>
-          <div class="form-row">
-            <label for="msClientId">Azure Client ID (Microsoft login)</label>
-            <input id="msClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-          </div>
-          <div class="row-actions">
-            <button id="saveSettings" class="btn primary">Save</button>
-            <button id="openFolder" class="btn">Open Sushi folder</button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="playbar">
-      <div class="pb-left">
-        <div class="muted small">Version</div>
-        <div class="pb-row">
-          <select id="versionSelect"></select>
-          <label class="check"><input type="checkbox" id="fabricToggle" /> Fabric</label>
-        </div>
-      </div>
-      <div class="pb-mid">
-        <div id="status" class="status">Ready</div>
-        <div class="bar"><div id="progress"></div></div>
-      </div>
-      <div class="pb-right">
-        <button id="playBtn" class="btn primary play">PLAY</button>
-      </div>
-    </footer>
-  </div>
-
+  <div class="app" id="app"></div>
+  <div class="toast" id="toast" hidden></div>
   <script src="app.js"></script>
 </body>
 </html>

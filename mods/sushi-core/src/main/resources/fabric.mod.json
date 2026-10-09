@@ -3,7 +3,7 @@
   "id": "sushi-core",
   "version": "${version}",
   "name": "Sushi Core",
-  "description": "Sushi Client in-game HUD: FPS, CPS, keystrokes, ping and coordinates.",
+  "description": "Sushi Client in-game HUD and module menu: FPS, CPS, keystrokes, ping and coordinates.",
   "authors": ["Sushi Client"],
   "license": "All-Rights-Reserved",
   "environment": "client",

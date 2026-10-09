@@ -1,66 +1,64 @@
-// Built-in mod catalog. Most mods come from Modrinth (open-source, Fabric).
-// "sushi-core" is our own in-game HUD and ships inside the launcher (assets/mods).
+// Built-in mod catalog. Open-source mods are fetched from Modrinth; Sushi Core ships inside the launcher.
 const fs = require('fs');
 const path = require('path');
 const { fetchJson, downloadFile } = require('./http');
 
-const SUSHI_CORE_MC = '1.21.1';
+// Mods the game cannot run without. They are always installed when Fabric is on and cannot be disabled.
+const REQUIRED_SLUGS = ['fabric-api'];
+
+// Sushi Core (HUD + in-game module menu) is bundled as assets/mods/sushi-core-<mc>.jar.
+const BUNDLED_SLUGS = ['sushi-core'];
 
 const MOD_CATALOG = [
-  { slug: 'sushi-core', name: 'Sushi Core', category: 'Client HUD', recommended: true, bundled: true, mcOnly: SUSHI_CORE_MC, desc: 'Sushi in-game HUD: FPS, CPS, keystrokes, ping and coordinates. Right Shift toggles it.' },
-  { slug: 'sodium', name: 'Sodium', category: 'Performance', recommended: true, desc: 'Rebuilt rendering engine. The biggest FPS gain.' },
+  { slug: 'fabric-api', name: 'Fabric API', category: 'Required', required: true, desc: 'Core library every Fabric mod needs.' },
+  { slug: 'sushi-core', name: 'Sushi Core', category: 'HUD', bundled: true, recommended: true, desc: 'Sushi HUD: FPS, CPS, keystrokes, ping, coordinates, and the Right Shift module menu.' },
+  { slug: 'sodium', name: 'Sodium', category: 'Performance', recommended: true, desc: 'Rebuilt rendering engine. Big FPS gains.' },
   { slug: 'lithium', name: 'Lithium', category: 'Performance', recommended: true, desc: 'Game-logic optimizations (ticks, AI, physics).' },
   { slug: 'ferrite-core', name: 'FerriteCore', category: 'Performance', recommended: true, desc: 'Cuts memory usage.' },
-  { slug: 'entityculling', name: 'Entity Culling', category: 'Performance', recommended: true, desc: 'Skips drawing entities you cannot see.' },
-  { slug: 'immediatelyfast', name: 'ImmediatelyFast', category: 'Performance', recommended: true, desc: 'Faster immediate-mode rendering (HUD, text, maps).' },
-  { slug: 'dynamic-fps', name: 'Dynamic FPS', category: 'Performance', recommended: false, desc: 'Lowers FPS when the window is unfocused or minimized.' },
-  { slug: 'modernfix', name: 'ModernFix', category: 'Performance', recommended: true, desc: 'Faster startup, lower memory, fewer stutters.' },
-  { slug: 'sodium-extra', name: 'Sodium Extra', category: 'Visuals', recommended: false, desc: 'More Sodium options: fog, sky, and fade settings.' },
-  { slug: 'reeses-sodium-options', name: "Reese's Sodium Options", category: 'Visuals', recommended: false, desc: 'Adds a full video settings screen for Sodium.' },
+  { slug: 'modernfix', name: 'ModernFix', category: 'Performance', recommended: true, desc: 'Faster startup and lower memory use.' },
+  { slug: 'immediatelyfast', name: 'ImmediatelyFast', category: 'Performance', recommended: false, desc: 'Faster immediate-mode rendering (HUD, text).' },
+  { slug: 'entityculling', name: 'Entity Culling', category: 'Performance', recommended: false, desc: 'Skips drawing entities you cannot see.' },
   { slug: 'modmenu', name: 'Mod Menu', category: 'Utility', recommended: true, desc: 'In-game menu to configure your mods.' },
   { slug: 'iris', name: 'Iris Shaders', category: 'Visuals', recommended: false, desc: 'Shader support (works with Sodium).' },
 ];
 
 // Installs the enabled mods for one Minecraft version and removes mods that were
 // turned off since the last launch (tracked in mods/.sushi-mods.json).
-async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir) {
+// Required mods throw on failure; optional ones are logged and skipped.
+async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir = null) {
   const modsDir = path.join(gameDir, 'mods');
   fs.mkdirSync(modsDir, { recursive: true });
   const manifestFile = path.join(modsDir, '.sushi-mods.json');
   const previous = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : {};
   const next = {};
 
+  const wanted = [...new Set([...REQUIRED_SLUGS, ...enabledSlugs])];
   const q = `loaders=${encodeURIComponent('["fabric"]')}&game_versions=${encodeURIComponent(JSON.stringify([mc]))}`;
 
-  for (const slug of enabledSlugs) {
-    const entry = MOD_CATALOG.find((m) => m.slug === slug);
-
-    if (entry && entry.bundled) {
-      if (mc !== SUSHI_CORE_MC) {
-        log(`${entry.name}: only available for Minecraft ${SUSHI_CORE_MC}, skipped`);
+  for (const slug of wanted) {
+    const required = REQUIRED_SLUGS.includes(slug);
+    const label = (MOD_CATALOG.find((m) => m.slug === slug) || { name: slug }).name;
+    try {
+      if (BUNDLED_SLUGS.includes(slug)) {
+        const jar = bundledDir && findBundledJar(bundledDir, mc);
+        if (!jar) throw new Error(`bundled jar for ${mc} is missing`);
+        const filename = path.basename(jar);
+        fs.copyFileSync(jar, path.join(modsDir, filename));
+        next[slug] = filename;
+        log(`${label}: ready (bundled)`);
         continue;
       }
-      const src = path.join(bundledDir || '', `sushi-core-${mc}.jar`);
-      if (!bundledDir || !fs.existsSync(src)) {
-        log(`${entry.name}: bundled jar not found, skipped`);
-        continue;
-      }
-      const filename = `sushi-core-${mc}.jar`;
-      fs.writeFileSync(path.join(modsDir, filename), fs.readFileSync(src)); // readFileSync works inside app.asar
-      next[slug] = filename;
-      log(`${entry.name}: ready`);
-      continue;
-    }
 
-    const versions = await fetchJson(`https://api.modrinth.com/v2/project/${slug}/version?${q}`);
-    if (!versions.length) {
-      log(`${slug}: no Fabric build for ${mc}, skipped`);
-      continue;
+      const versions = await fetchJson(`https://api.modrinth.com/v2/project/${slug}/version?${q}`);
+      if (!versions.length) throw new Error(`no Fabric build for ${mc}`);
+      const file = versions[0].files.find((f) => f.primary) || versions[0].files[0];
+      await downloadFile(file.url, path.join(modsDir, file.filename), file.hashes && file.hashes.sha1);
+      next[slug] = file.filename;
+      log(`${label}: ready`);
+    } catch (err) {
+      if (required) throw new Error(`${label} is required but could not be installed: ${err.message}`);
+      log(`${label}: skipped (${err.message})`);
     }
-    const file = versions[0].files.find((f) => f.primary) || versions[0].files[0];
-    await downloadFile(file.url, path.join(modsDir, file.filename), file.hashes && file.hashes.sha1);
-    next[slug] = file.filename;
-    log(`${slug}: ready`);
   }
 
   for (const [slug, filename] of Object.entries(previous)) {
@@ -70,4 +68,11 @@ async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir
   return next;
 }
 
-module.exports = { MOD_CATALOG, installMods, SUSHI_CORE_MC };
+function findBundledJar(bundledDir, mc) {
+  const exact = path.join(bundledDir, `sushi-core-${mc}.jar`);
+  if (fs.existsSync(exact)) return exact;
+  const any = fs.readdirSync(bundledDir).find((f) => /^sushi-core-.*\.jar$/.test(f));
+  return any ? path.join(bundledDir, any) : null;
+}
+
+module.exports = { MOD_CATALOG, REQUIRED_SLUGS, installMods };

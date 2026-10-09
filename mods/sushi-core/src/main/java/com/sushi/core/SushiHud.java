@@ -5,56 +5,67 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.PlayerListEntry;
 
-/** Draws the Sushi HUD: stats box (top-left) and keystroke board (bottom-left). */
-final class SushiHud {
-    private static final int BOX_BG = 0xB00D1410;
-    private static final int KEY_BG = 0xB015201A;
-    private static final int ACCENT = 0xFFFF7F5C;
-    private static final int WASABI = 0xFF9CCC65;
-    private static final int TEXT = 0xFFF4EFE6;
-    private static final int MUTED = 0xFF8EA597;
-    private static final int DARK = 0xFF0D1410;
+import java.util.ArrayList;
+import java.util.List;
 
+import static com.sushi.core.SushiTheme.*;
+
+/** Draws the Sushi HUD: stats panel (top-left) and keystroke board (bottom-left). */
+final class SushiHud {
     private SushiHud() {}
 
     static void render(DrawContext ctx) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.options.hudHidden) {
+        if (client.player == null || client.options.hudHidden || client.currentScreen instanceof SushiMenuScreen) {
             return;
         }
         TextRenderer tr = client.textRenderer;
-
         renderStats(ctx, tr, client);
-        renderKeystrokes(ctx, tr, client);
+        if (SushiConfig.keystrokes) {
+            renderKeystrokes(ctx, tr, client);
+        }
     }
 
     private static void renderStats(DrawContext ctx, TextRenderer tr, MinecraftClient client) {
-        int fps = client.getCurrentFps();
-        int fpsColor = fps >= 120 ? WASABI : fps >= 60 ? TEXT : ACCENT;
+        List<String> lines = new ArrayList<>();
+        List<Integer> colors = new ArrayList<>();
 
-        int ping = -1;
-        if (client.getNetworkHandler() != null) {
-            PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
-            if (entry != null) ping = entry.getLatency();
+        if (SushiConfig.fps) {
+            int fps = client.getCurrentFps();
+            lines.add("FPS " + fps);
+            colors.add(fps >= 120 ? CYAN : fps >= 60 ? TEXT : PURPLE);
+        }
+        if (SushiConfig.cps) {
+            lines.add("CPS " + ClickTracker.leftCps() + " | " + ClickTracker.rightCps());
+            colors.add(TEXT);
+        }
+        if (SushiConfig.ping) {
+            int ping = -1;
+            if (client.getNetworkHandler() != null) {
+                PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
+                if (entry != null) ping = entry.getLatency();
+            }
+            lines.add("Ping " + (ping < 0 ? "-" : ping + " ms"));
+            colors.add(TEXT);
+        }
+        if (SushiConfig.coords) {
+            lines.add("XYZ " + client.player.getBlockX() + " " + client.player.getBlockY() + " " + client.player.getBlockZ());
+            colors.add(TEXT);
+        }
+        if (lines.isEmpty()) {
+            return;
         }
 
-        String[] labels = {
-                "FPS " + fps,
-                "CPS " + ClickTracker.leftCps() + " | " + ClickTracker.rightCps(),
-                "Ping " + (ping < 0 ? "-" : ping + " ms"),
-                "XYZ " + client.player.getBlockX() + " " + client.player.getBlockY() + " " + client.player.getBlockZ(),
-        };
-
         int width = 0;
-        for (String s : labels) width = Math.max(width, tr.getWidth(s));
+        for (String s : lines) width = Math.max(width, tr.getWidth(s));
         int x = 6, y = 6;
-        int h = labels.length * 11 + 8;
-        ctx.fill(x, y, x + width + 14, y + h, BOX_BG);
-        ctx.fill(x, y, x + 2, y + h, ACCENT);
+        int h = lines.size() * 11 + 8;
+        ctx.fill(x, y, x + width + 14, y + h, HUD_BG);
+        ctx.fill(x, y, x + 2, y + h, CYAN);
+        ctx.fill(x + 2, y, x + 3, y + h, PURPLE_DIM);
 
-        for (int i = 0; i < labels.length; i++) {
-            int color = i == 0 ? fpsColor : TEXT;
-            ctx.drawText(tr, labels[i], x + 8, y + 5 + i * 11, color, true);
+        for (int i = 0; i < lines.size(); i++) {
+            ctx.drawText(tr, lines.get(i), x + 8, y + 5 + i * 11, colors.get(i), true);
         }
     }
 
@@ -74,7 +85,7 @@ final class SushiHud {
     }
 
     private static void key(DrawContext ctx, TextRenderer tr, String label, int x, int y, int w, int h, boolean down) {
-        ctx.fill(x, y, x + w, y + h, down ? ACCENT : KEY_BG);
+        ctx.fill(x, y, x + w, y + h, down ? CYAN : KEY_BG);
         int tx = x + (w - tr.getWidth(label)) / 2;
         int ty = y + (h - 8) / 2 + 1;
         ctx.drawText(tr, label, tx, ty, down ? DARK : MUTED, false);

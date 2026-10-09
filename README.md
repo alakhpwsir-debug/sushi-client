@@ -19,7 +19,7 @@ Built with Electron. Windows `.exe` first, Android later.
 | Microsoft login (device code flow) | Done, needs your Azure Client ID (see below) |
 | Windows portable `.exe` build (GitHub Actions) | Done |
 | FPS mods: Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast, ModernFix, Dynamic FPS | Done |
-| Sushi Core in-game HUD mod for 1.21.1 (FPS, CPS, keystrokes, ping, coords, Right Shift toggle) | Done, compiled against Fabric API 0.116.17 |
+| Sushi Core in-game HUD mod for 1.21.1 (FPS, CPS, keystrokes, ping, coords, Right Shift module menu) | Done, compiled against Fabric API 0.116.17 |
 | Sushi Core zoom, minimap, waypoints, Sushi settings screen | Planned |
 | Cosmetics, server list, news feed | Planned |
 | Android app | Planned, after Windows feedback |
@@ -28,12 +28,16 @@ Built with Electron. Windows `.exe` first, Android later.
 
 Source lives in `mods/sushi-core`. The built jar is committed at `assets/mods/sushi-core-1.21.1.jar` and copied into each Fabric instance by the launcher.
 
-Rebuild it (needs Java 21):
+Rebuild it (needs Java 21 and Gradle 8.10+; this repo has no Gradle wrapper yet):
 ```bash
 cd mods/sushi-core
-./gradlew build
-cp build/libs/sushi-core-0.1.0.jar ../../assets/mods/sushi-core-1.21.1.jar
+gradle build
+cp build/libs/sushi-core-0.2.0.jar ../../assets/mods/sushi-core-1.21.1.jar
 ```
+
+HUD colors are cyan and purple (`SushiTheme.java`). Press **Right Shift** in game to open the module menu and switch FPS, CPS, keystrokes, ping and coordinates on or off. Settings are saved to `config/sushi-core.properties`.
+
+Fabric API is required by Sushi Core. The launcher always installs it (`REQUIRED_SLUGS` in `src/launcher/mods.js`).
 
 ## Project layout
 

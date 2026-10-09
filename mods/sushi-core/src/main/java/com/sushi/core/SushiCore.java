@@ -11,28 +11,27 @@ import org.lwjgl.glfw.GLFW;
 public class SushiCore implements ClientModInitializer {
     public static final String MOD_ID = "sushi-core";
 
-    private static KeyBinding toggleHud;
-    private static boolean hudVisible = true;
+    private static KeyBinding menuKey;
 
     @Override
     public void onInitializeClient() {
-        toggleHud = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.sushi-core.toggle_hud",
+        SushiConfig.load();
+
+        menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.sushi-core.menu",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
                 "category.sushi-core"));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (toggleHud.wasPressed()) {
-                hudVisible = !hudVisible;
+            while (menuKey.wasPressed()) {
+                if (client.currentScreen == null) {
+                    client.setScreen(new SushiMenuScreen());
+                }
             }
             ClickTracker.tick(client);
         });
 
-        HudRenderCallback.EVENT.register((context, tickCounter) -> {
-            if (hudVisible) {
-                SushiHud.render(context);
-            }
-        });
+        HudRenderCallback.EVENT.register((context, tickCounter) -> SushiHud.render(context));
     }
 }

@@ -12,12 +12,12 @@ const { installFabric } = require('./fabric');
 const { listVersions } = require('./versions');
 
 /**
- * opts: { root, mc, fabric, account, memoryMB, javaPath, fpsPreset, mods }
+ * opts: { root, mc, fabric, account, memoryMB, javaPath, fpsPreset, mods, width, height, bundledModsDir }
  * emit(channel, payload): used to stream status/log lines to the UI.
  * Resolves with the game process id once Minecraft has started.
  */
 async function launchGame(opts, emit) {
-  const { root, mc, fabric, account } = opts;
+  const { root, mc, fabric, account, bundledModsDir } = opts;
   const d = dirs(root);
   const status = (text) => emit('game:status', { text });
 
@@ -27,9 +27,9 @@ async function launchGame(opts, emit) {
   const gameDir = path.join(d.instances, versionId);
   fs.mkdirSync(gameDir, { recursive: true });
 
-  if (fabric && opts.mods && opts.mods.length) {
+  if (fabric) {
     status('Installing mods...');
-    await installMods(gameDir, mc, opts.mods, status, opts.bundledModsDir);
+    await installMods(gameDir, mc, opts.mods || [], status, bundledModsDir);
   }
 
   const preset = FPS_PRESETS[opts.fpsPreset] || FPS_PRESETS.off;
@@ -50,6 +50,8 @@ async function launchGame(opts, emit) {
     javaPath,
     memoryMB: opts.memoryMB || 4096,
     extraJvm,
+    width: opts.width || 1280,
+    height: opts.height || 720,
   });
 
   status('Starting Minecraft...');
