@@ -1,4 +1,7 @@
 {
   "category.sushi-core": "Sushi Client",
-  "key.sushi-core.menu": "Open Sushi menu"
+  "key.sushi-core.menu": "Open Sushi menu",
+  "key.sushi-core.zoom": "Zoom (hold)",
+  "key.sushi-core.waypoint": "Add waypoint here",
+  "key.sushi-core.scoreboard": "Toggle scoreboard"
 }
