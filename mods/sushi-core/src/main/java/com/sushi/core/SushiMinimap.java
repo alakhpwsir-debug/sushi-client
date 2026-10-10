@@ -72,6 +72,10 @@ public final class SushiMinimap {
         CHUNKS.put(key(dim, cx, cz), colors);
     }
 
+    /** Ticks between redraws of the minimap texture. Redrawing every tick costs frame time for no visible gain. */
+    private static final int REFRESH_TICKS = 5;
+    private static int ticksSinceRefresh = REFRESH_TICKS;
+
     /** Called from the client tick. Refreshes the minimap texture while it is on. */
     public static void tick(MinecraftClient client) {
         if (!SushiConfig.enabled[SushiConfig.MINIMAP] || client.world == null || client.player == null) return;
@@ -81,6 +85,8 @@ public final class SushiMinimap {
             texture = new NativeImageBackedTexture(TEX, TEX, false);
             textureId = client.getTextureManager().registerDynamicTexture("sushi_minimap", texture);
         }
+        if (++ticksSinceRefresh < REFRESH_TICKS) return;
+        ticksSinceRefresh = 0;
         paint(client);
     }
 

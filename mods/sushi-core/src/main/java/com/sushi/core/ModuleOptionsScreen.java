@@ -69,6 +69,12 @@ public class ModuleOptionsScreen extends Screen {
                     SushiConfig.save();
                 });
             }
+            case SushiConfig.HITBOX -> {
+                row(cx, y, () -> Text.literal("Aimed colour: " + SushiConfig.COLOR_NAMES[SushiConfig.hitboxColor]), () -> {
+                    SushiConfig.hitboxColor = (SushiConfig.hitboxColor + 1) % SushiConfig.COLORS.length;
+                    SushiConfig.save();
+                });
+            }
             case SushiConfig.MOTION_BLUR -> {
                 row(cx, y, () -> Text.literal("Strength: " + SushiConfig.motionBlur + "%"), () -> {
                     int i = 0;

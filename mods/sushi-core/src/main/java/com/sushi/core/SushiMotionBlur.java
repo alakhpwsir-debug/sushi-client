@@ -38,6 +38,8 @@ public final class SushiMotionBlur {
         int w = fb.textureWidth;
         int h = fb.textureHeight;
         if (w <= 0 || h <= 0) return;
+        // Make sure the main framebuffer is the one being read and drawn into.
+        fb.beginWrite(false);
         ensureTexture(w, h);
         if (hasHistory) {
             blendHistory(w, h, SushiConfig.motionBlur / 100f);
@@ -65,7 +67,8 @@ public final class SushiMotionBlur {
         GlStateManager._bindTexture(texture);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, w, h, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, (java.nio.ByteBuffer) null);
+        // RGB only: the saved frame's alpha is ignored, so the blend works on every pixel, sky included.
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB8, w, h, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, (java.nio.ByteBuffer) null);
         hasHistory = false;
     }
 

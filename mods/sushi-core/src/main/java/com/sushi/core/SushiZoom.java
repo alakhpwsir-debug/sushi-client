@@ -1,22 +1,22 @@
 package com.sushi.core;
 
-/** Zoom while the zoom key is held. The FOV eases in and out over a few ticks. */
+/**
+ * Zoom while the zoom key is held. The FOV changes in one step rather than easing frame by frame:
+ * every frame that the FOV changes forces the renderer to redo its visibility work, so a single
+ * change is much cheaper than a slide that runs for many frames.
+ */
 public final class SushiZoom {
-    private static float progress; // 0 = normal view, 1 = fully zoomed
+    private static boolean zoomed;
 
     private SushiZoom() {}
 
     /** Called once per client tick with whether the zoom key is held. */
     static void tick(boolean held) {
-        float target = held && SushiConfig.enabled[SushiConfig.ZOOM] ? 1f : 0f;
-        progress += (target - progress) * 0.35f;
-        if (Math.abs(target - progress) < 0.002f) progress = target;
+        zoomed = held && SushiConfig.enabled[SushiConfig.ZOOM];
     }
 
     /** Multiplier for the field of view this frame. 1 means no change. */
     public static double fovMultiplier() {
-        if (progress <= 0f) return 1.0;
-        double zoomed = 1.0 / SushiConfig.zoomFactor;
-        return 1.0 + (zoomed - 1.0) * progress;
+        return zoomed ? 1.0 / SushiConfig.zoomFactor : 1.0;
     }
 }

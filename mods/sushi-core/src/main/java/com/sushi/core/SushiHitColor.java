@@ -8,21 +8,29 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 
 /**
  * Changes the colour of the flash an entity shows when it is hit. Vanilla paints that flash into the
- * top rows of the overlay texture, so the same rows are repainted here.
+ * top half of the overlay texture (rows 0 to 7), so those rows are repainted here.
+ *
+ * The check runs every tick rather than only when a setting changes, so the colour is put back if
+ * the overlay texture is ever recreated (for example after a resource reload).
  */
 final class SushiHitColor {
-    /** Vanilla hurt colour, as NativeImage stores it (ABGR). Red at alpha 0xB2. */
+    /** Vanilla hurt colour, as NativeImage stores it (ABGR): red at alpha 0xB2. */
     private static final int VANILLA = 0xB20000FF;
-    private static int applied = VANILLA;
+
+    /** The texture and colour we last painted. Used to skip the upload when nothing changed. */
+    private static NativeImageBackedTexture paintedTexture;
+    private static int paintedColor = VANILLA;
 
     private SushiHitColor() {}
 
-    /** Called once per client tick. Repaints only when the chosen colour changes. */
+    /** Called once per client tick. */
     static void tick(MinecraftClient client) {
-        int want = wanted();
-        if (want == applied || client.gameRenderer == null) return;
+        if (client.gameRenderer == null) return;
         OverlayTexture overlay = client.gameRenderer.getOverlayTexture();
         NativeImageBackedTexture texture = ((OverlayTextureAccessor) (Object) overlay).sushi$texture();
+        int want = wanted();
+        if (texture == paintedTexture && want == paintedColor) return;
+
         NativeImage image = texture.getImage();
         if (image == null) return;
         for (int x = 0; x < 16; x++) {
@@ -31,9 +39,11 @@ final class SushiHitColor {
             }
         }
         texture.upload();
-        applied = want;
+        paintedTexture = texture;
+        paintedColor = want;
     }
 
+    /** The colour the hurt flash should use right now, in NativeImage (ABGR) layout. */
     private static int wanted() {
         if (!SushiConfig.enabled[SushiConfig.HIT_COLOR]) return VANILLA;
         int argb = SushiConfig.COLORS[SushiConfig.hitColor];

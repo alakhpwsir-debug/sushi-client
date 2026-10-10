@@ -7,7 +7,8 @@
     "MinecraftClientMixin",
     "GameRendererMixin",
     "InGameHudMixin",
-    "OverlayTextureAccessor"
+    "OverlayTextureAccessor",
+    "EntityRenderDispatcherMixin"
   ],
   "injectors": {
     "defaultRequire": 1

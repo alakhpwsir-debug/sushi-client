@@ -71,7 +71,7 @@ public final class SushiConfig {
     public static final int[] COLORS = {0xFF22D3EE, 0xFFFFFFFF, 0xFFA855F7, 0xFF4ADE80, 0xFFFACC15, 0xFFF43F5E};
     public static final String[] COLOR_NAMES = {"Cyan", "White", "Purple", "Green", "Yellow", "Red"};
     public static final int[] ZOOM_FACTORS = {2, 3, 4, 6, 8};
-    public static final int[] MOTION_STEPS = {10, 20, 30, 40, 50};
+    public static final int[] MOTION_STEPS = {20, 35, 50, 65, 80};
     public static final int[] MINIMAP_SIZES = {96, 128, 160};
     public static final String[] CROSSHAIR_STYLES = {"Dot", "Plus", "Cross"};
 
@@ -79,7 +79,9 @@ public final class SushiConfig {
     public static int crosshairStyle = 1;
     public static int crosshairColor = 0;
     public static int hitColor = 0;
-    public static int motionBlur = 30;
+    /** Colour of the hitbox outline on the entity you are aiming at. Red by default. */
+    public static int hitboxColor = 5;
+    public static int motionBlur = 50;
     public static int minimapSize = 128;
 
     public static final List<SushiWaypoints.Waypoint> waypoints = new ArrayList<>();
@@ -103,7 +105,7 @@ public final class SushiConfig {
     }
 
     public static boolean hasOptions(int i) {
-        return hasBox(i) || i == ZOOM || i == CROSSHAIR || i == HIT_COLOR || i == MOTION_BLUR;
+        return hasBox(i) || i == ZOOM || i == CROSSHAIR || i == HIT_COLOR || i == MOTION_BLUR || i == HITBOX;
     }
 
     public static void load() {
@@ -130,6 +132,7 @@ public final class SushiConfig {
         crosshairStyle = Math.max(0, Math.min(CROSSHAIR_STYLES.length - 1, integer(p, "crosshair.style", crosshairStyle)));
         crosshairColor = Math.max(0, Math.min(COLORS.length - 1, integer(p, "crosshair.color", crosshairColor)));
         hitColor = Math.max(0, Math.min(COLORS.length - 1, integer(p, "hitcolor.index", hitColor)));
+        hitboxColor = Math.max(0, Math.min(COLORS.length - 1, integer(p, "hitbox.color", hitboxColor)));
         motionBlur = pick(MOTION_STEPS, integer(p, "motionblur.amount", motionBlur));
         minimapSize = pick(MINIMAP_SIZES, integer(p, "minimap.size", minimapSize));
 
@@ -160,6 +163,7 @@ public final class SushiConfig {
         p.setProperty("crosshair.style", String.valueOf(crosshairStyle));
         p.setProperty("crosshair.color", String.valueOf(crosshairColor));
         p.setProperty("hitcolor.index", String.valueOf(hitColor));
+        p.setProperty("hitbox.color", String.valueOf(hitboxColor));
         p.setProperty("motionblur.amount", String.valueOf(motionBlur));
         p.setProperty("minimap.size", String.valueOf(minimapSize));
         p.setProperty("wp.count", String.valueOf(waypoints.size()));
@@ -181,11 +185,13 @@ public final class SushiConfig {
         }
     }
 
+    /** Returns the allowed value closest to the saved one, so an old saved value still maps to a sensible step. */
     private static int pick(int[] allowed, int value) {
+        int best = allowed[0];
         for (int v : allowed) {
-            if (v == value) return v;
+            if (Math.abs(v - value) < Math.abs(best - value)) best = v;
         }
-        return allowed[0];
+        return best;
     }
 
     private static boolean bool(Properties p, String key, boolean def) {
