@@ -2,15 +2,15 @@
 const fs = require('fs');
 const path = require('path');
 
-// G1 with a fixed young generation sized for a 4 GB game heap. G1 costs less per frame than ZGC
-// (ZGC's memory barriers slow the game down), and it doesn't use string deduplication, which only adds CPU work.
+// Stable (non-experimental) G1 flags for the 4 GB game heap. G1 costs less per frame than ZGC
+// (ZGC's memory barriers slow the game down). String deduplication is left out: it only adds CPU work.
+// Every flag here was checked against JDK 21 with -version. Experimental flags need
+// -XX:+UnlockExperimentalVMOptions, so don't add any without it.
 const G1_TUNING = [
   '-XX:+UseG1GC',
   '-XX:+ParallelRefProcEnabled',
   '-XX:MaxGCPauseMillis=50',
   '-XX:+DisableExplicitGC',
-  '-XX:G1NewSizePercent=30',
-  '-XX:G1MaxNewSizePercent=40',
   '-XX:G1HeapRegionSize=8M',
   '-XX:G1ReservePercent=20',
 ];

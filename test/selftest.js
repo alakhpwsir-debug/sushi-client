@@ -128,6 +128,10 @@ async function waitFor(cond, timeoutMs, label) {
   assert.strictEqual(FPS_PRESETS.balanced.capToRefresh, true);
   assert(presetJvmArgs('max', 21).includes('-XX:+UseG1GC'), 'Max FPS should use G1');
   assert(!presetJvmArgs('max', 21).some((a) => a.includes('ZGC') || a.includes('StringDedup')), 'no ZGC / string dedup');
+  // G1NewSizePercent / G1MaxNewSizePercent are experimental on JDK 21 and stop the game from starting.
+  for (const key of ['max', 'balanced']) {
+    assert(!presetJvmArgs(key, 21).some((a) => a.startsWith('-XX:G1NewSizePercent') || a.startsWith('-XX:G1MaxNewSizePercent')), 'experimental G1 flag in ' + key);
+  }
 
   step('CPU reserve flags');
   const { coreReserveArgs, startGameProcess } = require('../src/launcher/gameprocess');
