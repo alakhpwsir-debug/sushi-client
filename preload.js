@@ -15,7 +15,12 @@ contextBridge.exposeInMainWorld('sushi', {
     remove: invoke('accounts:remove'),
   },
   game: { launch: invoke('game:launch') },
-  content: { get: invoke('content:get') },
+  content: {
+    get: invoke('content:get'),
+    search: invoke('content:search'),
+    install: invoke('content:install'),
+    openLibrary: invoke('content:openLibrary'),
+  },
   profile: { openMods: invoke('profile:openMods') },
   mods: { catalog: invoke('mods:catalog') },
   fps: { presets: invoke('fps:presets') },

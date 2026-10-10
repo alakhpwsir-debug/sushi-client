@@ -15,6 +15,7 @@
     accounts: '<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c.8-3.8 3.8-6 7.5-6s6.7 2.2 7.5 6"/>',
     console: '<path d="M4 6l6 6-6 6M12.5 18.5H20"/>',
     settings: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/>',
+    store: '<path d="M4 8.5h16l-1.3 10.2a1.5 1.5 0 0 1-1.5 1.3H6.8a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5"/>',
   };
   const svg = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
 
@@ -22,6 +23,7 @@
     { id: 'home', label: 'Home', title: 'Home' },
     { id: 'profiles', label: 'Profiles', title: 'Profiles' },
     { id: 'mods', label: 'Mods', title: 'Mods' },
+    { id: 'content', label: 'Browse', title: 'Browse content', icon: 'store' },
     { id: 'fps', label: 'FPS', title: 'FPS Boost' },
     { id: 'accounts', label: 'Accounts', title: 'Accounts' },
     { id: 'console', label: 'Console', title: 'Console' },
@@ -46,7 +48,18 @@
     versionAll: false,
     accMenu: false,
     content: { news: [], servers: [] },
+    cType: 'mod',
+    cSource: 'modrinth',
+    cQuery: '',
+    cResults: null,
+    cLoading: false,
+    cError: '',
+    cBusyIdx: -1,
   };
+
+  const TYPE_LABEL = { mod: 'Mods', resourcepack: 'Resource packs', shader: 'Shader packs' };
+  const TYPE_NOUN = { mod: 'Mod', resourcepack: 'Resource pack', shader: 'Shader pack' };
+  const SOURCE_LABEL = { modrinth: 'Modrinth', curseforge: 'CurseForge' };
 
   const GRADS = [
     'linear-gradient(135deg,#0e7490,#22d3ee)',
@@ -82,11 +95,11 @@
   function shell() {
     const acc = activeAcc();
     const p = active();
-    const rail = PAGES.map((pg) => `<button class="nav ${S.page === pg.id ? 'on' : ''}" data-act="page" data-page="${pg.id}">${svg(pg.id === 'profiles' ? 'profiles' : pg.id)}<span>${pg.label}</span></button>`).join('');
+    const rail = PAGES.map((pg) => `<button class="nav ${S.page === pg.id ? 'on' : ''}" data-act="page" data-page="${pg.id}">${svg(pg.icon || pg.id)}<span>${pg.label}</span></button>`).join('');
     const page = PAGES.find((pg) => pg.id === S.page);
     return `
       <aside class="rail">
-        <div class="logo"><svg viewBox="0 0 24 24">${ICON.logo}</svg></div>
+        <div class="logo"><img src="assets/logo.png" alt="Sushi Client"/></div>
         ${rail}
         <div class="spacer"></div>
         <button class="nav ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings">${svg('settings')}<span>Settings</span></button>
@@ -140,6 +153,7 @@
       case 'fps': return fpsPage();
       case 'accounts': return accountsPage();
       case 'console': return consolePage();
+      case 'content': return contentPage();
       case 'settings': return settingsPage();
       default: return homePage();
     }
@@ -172,18 +186,7 @@
     return `
       <div class="stack">
         <section class="hero">
-          <svg class="hero-art" viewBox="0 0 400 400" aria-hidden="true">
-            <defs>
-              <radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#22d3ee" stop-opacity="0.9"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0.2"/></radialGradient>
-              <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#67e8f9"/><stop offset="100%" stop-color="#a855f7"/></linearGradient>
-            </defs>
-            <circle cx="200" cy="200" r="190" fill="url(#g1)" opacity="0.25"/>
-            <circle cx="200" cy="200" r="150" fill="none" stroke="url(#g2)" stroke-width="2" opacity="0.6"/>
-            <circle cx="200" cy="200" r="118" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="4 8" opacity="0.5"/>
-            <circle cx="200" cy="200" r="86" fill="#0d1024" stroke="url(#g2)" stroke-width="3"/>
-            <circle cx="200" cy="200" r="46" fill="url(#g2)" opacity="0.85"/>
-            <circle cx="200" cy="200" r="20" fill="#0d1024"/>
-          </svg>
+          <img class="hero-art" src="assets/logo.png" alt="" />
           <div class="hero-copy">
             <div class="eyebrow">Sushi Client · Beta</div>
             <h1>Play smoother.<br/><span class="grad">See everything.</span></h1>
@@ -409,6 +412,8 @@
           <div class="ctl"><input type="text" value="${esc(s.msClientId)}" placeholder="00000000-0000-0000-0000-000000000000" data-change="set" data-set="msClientId"/></div></div>`;
     } else {
       body = `
+        <div class="setting"><div class="txt"><b>CurseForge API key</b><span>Free from console.curseforge.com. Needed only for CurseForge search.</span></div>
+          <div class="ctl row"><input type="text" value="${esc(s.curseforgeKey)}" placeholder="Paste your key" data-change="set" data-set="curseforgeKey" style="flex:1"/><button class="btn sm" data-act="open-cf-console">Get a key</button></div></div>
         <div class="setting"><div class="txt"><b>News and servers source</b><span>Optional https link to a JSON file with news and servers. Empty uses the built-in list.</span></div>
           <div class="ctl"><input type="text" value="${esc(s.contentUrl)}" placeholder="https://example.com/sushi-content.json" data-change="set" data-set="contentUrl"/></div></div>
         <div class="setting"><div class="txt"><b>Sushi folder</b><span>Instances, mods, settings and accounts live here.</span></div>
@@ -452,6 +457,87 @@
         <div class="txt"><b>Custom image</b><span>PNG or JPG, up to 2.5 MB. Saved in your settings file.</span></div>
         <div class="ctl"><label class="btn" style="display:inline-block;cursor:pointer">Choose image<input type="file" accept="image/png,image/jpeg" data-change="bg-file" hidden/></label></div>
       </div>`;
+  }
+
+  /* ---------- browse (mods, resource packs, shader packs) ---------- */
+  const isInstalled = (p, r) => (p.content || []).some((c) => c.type === r.type && c.source === r.source && String(c.id) === String(r.id));
+
+  function contentPage() {
+    const p = active();
+    const typeTabs = Object.keys(TYPE_LABEL).map((k) => `<button class="cat ${S.cType === k ? 'on' : ''}" data-act="c-type" data-type="${k}">${TYPE_LABEL[k]}</button>`).join('');
+    const srcTabs = Object.keys(SOURCE_LABEL).map((k) => `<button class="cat ${S.cSource === k ? 'on' : ''}" data-act="c-src" data-source="${k}">${SOURCE_LABEL[k]}</button>`).join('');
+    let notice = '';
+    if (S.cType === 'mod' && !p.fabric) notice = `<div class="notice">Mods need a Fabric profile. Turn on Fabric for <b>${esc(p.name)}</b> in Profiles.</div>`;
+    else if (S.cSource === 'curseforge' && !S.settings.curseforgeKey) notice = `<div class="notice">CurseForge needs a free API key. <button class="btn sm" data-act="c-goto-settings" style="margin-left:8px">Add key in Settings</button></div>`;
+    return `
+      <div class="muted small" style="margin-bottom:10px">Installing to <b style="color:var(--text)">${esc(p.name)}</b> · ${esc(p.mc)} · ${loaderLabel(p)}</div>
+      ${notice}
+      <div class="toolbar">${typeTabs}<span style="width:14px"></span>${srcTabs}</div>
+      <div class="toolbar">
+        <input type="text" id="cq" placeholder="Search ${esc(TYPE_LABEL[S.cType].toLowerCase())}" value="${esc(S.cQuery)}" data-input="c-query" style="max-width:420px"/>
+        <button class="btn primary sm" data-act="c-search">Search</button>
+      </div>
+      <div class="split">
+        <div>${resultsHtml(p)}</div>
+        <section class="panel">
+          <h3>Installed for this profile</h3>
+          ${installedHtml(p)}
+          <div class="row" style="margin-top:14px"><button class="btn sm" data-act="c-open-lib">Open library folder</button></div>
+          <p class="muted small" style="margin:12px 0 0;line-height:1.5">Files go into your library and are copied into the game on launch. Shader packs run through Iris, which Sushi adds for you.</p>
+        </section>
+      </div>`;
+  }
+
+  function resultsHtml(p) {
+    if (S.cLoading) return '<div class="empty">Searching…</div>';
+    if (S.cError) return `<div class="notice">${esc(S.cError)}</div>`;
+    if (S.cResults === null) return '<div class="empty">Loading…</div>';
+    if (!S.cResults.length) return '<div class="empty">No results. Try another search.</div>';
+    const cards = S.cResults.map((r, i) => {
+      const done = isInstalled(p, r);
+      const busy = S.cBusyIdx === i;
+      const icon = r.icon ? `<img class="ticon" src="${esc(r.icon)}" alt="" />` : `<span class="ticon ph">${esc((r.title || '?').slice(0, 1).toUpperCase())}</span>`;
+      return `
+        <div class="ccard ${done ? 'on' : ''}">
+          <div class="row" style="gap:12px;flex-wrap:nowrap">
+            ${icon}
+            <div style="min-width:0">
+              <h4 class="ctitle">${esc(r.title)}</h4>
+              <div class="small muted">${esc(r.author || 'Unknown author')} · ${Number(r.downloads || 0).toLocaleString()} downloads</div>
+            </div>
+          </div>
+          <p>${esc(r.desc)}</p>
+          <div class="row" style="justify-content:space-between;margin-top:auto">
+            <span class="tag ${r.source === 'curseforge' ? 'p' : ''}">${SOURCE_LABEL[r.source] || r.source}</span>
+            ${done ? '<span class="tag">Installed</span>' : `<button class="btn primary sm" data-act="c-install" data-idx="${i}" ${busy ? 'disabled' : ''}>${busy ? 'Installing…' : 'Install'}</button>`}
+          </div>
+        </div>`;
+    }).join('');
+    return `<div class="cresults">${cards}</div>`;
+  }
+
+  function installedHtml(p) {
+    const list = p.content || [];
+    if (!list.length) return '<div class="muted small">Nothing installed for this profile yet.</div>';
+    return list.map((c, i) => `
+      <div class="kv" style="align-items:center">
+        <span><b>${esc(c.name)}</b><div class="small muted">${TYPE_NOUN[c.type] || c.type} · ${SOURCE_LABEL[c.source] || esc(c.source)}</div></span>
+        <button class="btn sm danger" data-act="c-remove" data-idx="${i}">Remove</button>
+      </div>`).join('');
+  }
+
+  async function runSearch() {
+    S.cLoading = true;
+    S.cError = '';
+    render();
+    try {
+      S.cResults = await window.sushi.content.search({ source: S.cSource, type: S.cType, query: S.cQuery });
+    } catch (err) {
+      S.cResults = [];
+      S.cError = err.message;
+    }
+    S.cLoading = false;
+    render();
   }
 
   /* ---------- render ---------- */
@@ -503,7 +589,57 @@
       case 'page':
         S.page = el.dataset.page;
         render();
+        if (S.page === 'content' && S.cResults === null) await runSearch();
         break;
+      case 'c-type':
+        S.cType = el.dataset.type;
+        await runSearch();
+        break;
+      case 'c-src':
+        S.cSource = el.dataset.source;
+        await runSearch();
+        break;
+      case 'c-search': await runSearch(); break;
+      case 'c-goto-settings':
+        S.page = 'settings';
+        S.settingsTab = 'launcher';
+        render();
+        break;
+      case 'open-cf-console': window.sushi.app.openUrl('https://console.curseforge.com/'); break;
+      case 'c-open-lib': window.sushi.content.openLibrary(); break;
+      case 'c-install': {
+        const idx = Number(el.dataset.idx);
+        const r = S.cResults && S.cResults[idx];
+        const p = active();
+        if (!r) break;
+        if (r.type === 'mod' && S.catalog.some((m) => m.name.toLowerCase() === r.title.toLowerCase())) {
+          toast(`${r.title} is already on the Mods page. Turn it on there instead.`, 'bad');
+          break;
+        }
+        S.cBusyIdx = idx;
+        render();
+        try {
+          const res = await window.sushi.content.install({ source: r.source, type: r.type, item: { id: r.id, title: r.title } });
+          const entry = { type: res.type, file: res.file, name: res.name, source: res.source, id: res.id };
+          const existing = (p.content || []).filter((c) => !(c.type === r.type && c.source === r.source && String(c.id) === String(r.id)));
+          const next = r.type === 'shader' ? existing.filter((c) => c.type !== 'shader').concat(entry) : existing.concat(entry);
+          S.cBusyIdx = -1;
+          await updateProfile(p.id, { content: next });
+          toast(`Installed ${r.title}`, 'ok');
+        } catch (err) {
+          S.cBusyIdx = -1;
+          render();
+          toast(err.message, 'bad');
+        }
+        break;
+      }
+      case 'c-remove': {
+        const p = active();
+        const idx = Number(el.dataset.idx);
+        await updateProfile(p.id, { content: (p.content || []).filter((_, i) => i !== idx) });
+        toast('Removed from this profile. The file stays in your library.', 'ok');
+        break;
+      }
       case 'launch': await launch(); break;
       case 'join': await launch(el.dataset.addr); break;
       case 'copy-ip':
@@ -661,12 +797,23 @@
     } catch (err) { toast(err.message, 'bad'); }
   });
 
+  document.addEventListener('keydown', (e) => {
+    if (e.target && e.target.id === 'cq' && e.key === 'Enter') runSearch();
+  });
+
+  // Result icons can be broken links. Hide them instead of showing a broken-image mark.
+  document.addEventListener('error', (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains('ticon')) e.target.style.display = 'none';
+  }, true);
+
   document.addEventListener('input', (e) => {
     const el = e.target;
     if (el.dataset.input === 'mod-q') {
       S.modQuery = el.value;
       const grid = document.getElementById('modgrid');
       if (grid) grid.innerHTML = modCards();
+    } else if (el.dataset.input === 'c-query') {
+      S.cQuery = el.value;
     } else if (el.dataset.input === 'mem') {
       const label = document.getElementById('memlabel');
       if (label) label.textContent = `${(Number(el.value) / 1024).toFixed(1)} GB`;

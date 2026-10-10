@@ -25,7 +25,7 @@ const MOD_CATALOG = [
 // Installs the enabled mods for one Minecraft version and removes mods that were
 // turned off since the last launch (tracked in mods/.sushi-mods.json).
 // Required mods throw on failure; optional ones are logged and skipped.
-async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir = null) {
+async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir = null, extraPaths = []) {
   const modsDir = path.join(gameDir, 'mods');
   fs.mkdirSync(modsDir, { recursive: true });
   const manifestFile = path.join(modsDir, '.sushi-mods.json');
@@ -67,6 +67,18 @@ async function installMods(gameDir, mc, enabledSlugs, log = () => {}, bundledDir
       if (required) throw new Error(`${label} is required but could not be installed: ${err.message}`);
       log(`${label}: skipped (${err.message})`);
     }
+  }
+
+  // Mods the user added from the library (Browse page). Copied in and tracked like the rest.
+  for (const src of extraPaths) {
+    const name = path.basename(src);
+    if (!fs.existsSync(src)) {
+      log(`${name}: missing from the library, skipped`);
+      continue;
+    }
+    fs.copyFileSync(src, path.join(modsDir, name));
+    next[`file:${name}`] = name;
+    log(`${name}: ready (library)`);
   }
 
   for (const [slug, filename] of Object.entries(previous)) {

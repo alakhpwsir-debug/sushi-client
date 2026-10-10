@@ -34,6 +34,10 @@ public class SushiTitleScreen extends Screen {
     /** One full roam from left to right and back takes this long. */
     private static final long ROAM_MS = 90_000L;
 
+    /** Sushi Client logo (assets/sushi-core/textures/gui/logo.png), square. */
+    private static final Identifier LOGO = Identifier.of("sushi-core", "textures/gui/logo.png");
+    private static final int LOGO_PX = 500;
+
     private record Rect(int x, int y, int w, int h, String label, Runnable run) {
         boolean hit(double mx, double my) {
             return mx >= x && mx < x + w && my >= y && my < y + h;
@@ -128,22 +132,10 @@ public class SushiTitleScreen extends Screen {
     }
 
     private void drawLogo(DrawContext ctx) {
-        int cx = width / 2;
-        int cy = (int) (height * 0.22);
-        int r = Math.max(16, Math.min(28, height / 10));
-        disc(ctx, cx, cy, r, PURPLE);
-        disc(ctx, cx, cy, r - 3, 0xFF0B0D1F);
-        disc(ctx, cx, cy, (int) (r * 0.75f), CYAN);
-        disc(ctx, cx, cy, (int) (r * 0.46f), 0xFF0B0D1F);
-        disc(ctx, cx, cy, (int) (r * 0.22f), PURPLE2);
-
-        int wordY = (int) (height * 0.33);
-        ctx.getMatrices().push();
-        ctx.getMatrices().translate(cx, wordY, 0);
-        ctx.getMatrices().scale(3f, 3f, 1f);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("SUSHI"), 0, 0, TEXT);
-        ctx.getMatrices().pop();
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("C L I E N T"), cx, wordY + 28, PURPLE2);
+        int size = Math.max(96, Math.min(180, (int) (height * 0.33)));
+        int x = width / 2 - size / 2;
+        int y = (int) (height * 0.07);
+        ctx.drawTexture(LOGO, x, y, size, size, 0f, 0f, LOGO_PX, LOGO_PX, LOGO_PX, LOGO_PX);
     }
 
     private void drawButton(DrawContext ctx, Rect r, int mouseX, int mouseY) {

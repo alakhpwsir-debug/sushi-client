@@ -39,7 +39,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "assets/icon.ico"
     },
     "portable": {
       "artifactName": "SushiClient-${version}.exe"

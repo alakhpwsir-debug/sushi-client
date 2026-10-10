@@ -7,6 +7,7 @@ const { ROOT, dirs } = require('./src/launcher/paths');
 const core = require('./src/launcher');
 const auth = require('./src/launcher/auth');
 const { fetchJson } = require('./src/launcher/http');
+const content = require('./src/launcher/content');
 
 const paths = dirs(ROOT);
 
@@ -30,6 +31,7 @@ const DEFAULT_SETTINGS = {
   background: 'aurora',
   customBackground: '',
   contentUrl: '',
+  curseforgeKey: '',
 };
 
 // Finds the mods folder for a profile. Fabric instances are named after the Fabric profile id,
@@ -194,6 +196,7 @@ function registerIpc() {
         javaPath: s.javaPath,
         fpsPreset: profile.fpsPreset,
         mods: profile.fabric ? profile.mods : [],
+        content: profile.content || [],
         width: s.width,
         height: s.height,
         quickServer: /^[A-Za-z0-9.\-:_\[\]]{1,255}$/.test(String(quickServer || '')) ? String(quickServer) : null,
@@ -207,6 +210,40 @@ function registerIpc() {
   ipcMain.handle('fps:presets', () =>
     Object.fromEntries(Object.entries(core.FPS_PRESETS).map(([k, p]) => [k, { label: p.label, description: p.description }])),
   );
+  // Browse page: search and install mods, resource packs and shader packs.
+  const activeProfile = () => {
+    const s = readSettings();
+    return s.profiles.find((p) => p.id === s.activeProfileId) || s.profiles[0];
+  };
+
+  ipcMain.handle('content:search', async (_e, { source, type, query } = {}) => {
+    if (!['modrinth', 'curseforge'].includes(source)) throw new Error('Pick Modrinth or CurseForge.');
+    const profile = activeProfile();
+    if (type === 'mod' && !profile.fabric) throw new Error('Mods need a Fabric profile. Switch to a Fabric profile first.');
+    return content.search({
+      source,
+      type,
+      query: String(query || '').slice(0, 100),
+      mc: profile.mc,
+      apiKey: readSettings().curseforgeKey,
+    });
+  });
+
+  ipcMain.handle('content:install', async (_e, { source, type, item } = {}) => {
+    const profile = activeProfile();
+    if (type === 'mod' && !profile.fabric) throw new Error('Mods need a Fabric profile. Switch to a Fabric profile first.');
+    return content.install({
+      root: ROOT,
+      source,
+      type,
+      item: { id: String(item.id), title: String(item.title || 'Untitled').slice(0, 120) },
+      mc: profile.mc,
+      apiKey: readSettings().curseforgeKey,
+    });
+  });
+
+  ipcMain.handle('content:openLibrary', () => shell.openPath(path.dirname(content.libraryDir(ROOT, 'mod'))));
+
   ipcMain.handle('app:copy', (_e, text) => {
     clipboard.writeText(String(text || '').slice(0, 255));
     return true;
