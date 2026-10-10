@@ -123,6 +123,7 @@ async function waitFor(cond, timeoutMs, label) {
   assert.strictEqual(fitMaxFps({ maxFps: '260' }, 0).maxFps, '260', 'unknown refresh keeps the preset');
   assert.strictEqual(fitMaxFps(FPS_PRESETS.off.options, 60).maxFps, undefined, 'Off preset stays untouched');
   assert(!FPS_PRESETS.max.description.includes('260'));
+  assert(presetJvmArgs('max', 21).includes('-XX:ZUncommitDelay=30'));
 
   step('CPU reserve flags');
   const { coreReserveArgs, startGameProcess } = require('../src/launcher/gameprocess');
@@ -130,7 +131,7 @@ async function waitFor(cond, timeoutMs, label) {
   assert.deepStrictEqual(coreReserveArgs(6), ['-XX:ActiveProcessorCount=5']);
   assert.deepStrictEqual(coreReserveArgs(12), ['-XX:ActiveProcessorCount=10']);
 
-  step('game process: streams log, reports exit, below-normal priority');
+  step('game process: streams log, reports exit, normal priority');
   const fakeGame = path.join(root, 'fake-game.js');
   const marker = path.join(root, 'fake-game.done');
   fs.writeFileSync(
@@ -153,8 +154,8 @@ const t = setInterval(() => {
   });
   assert(child.pid > 0);
   if (process.platform !== 'win32') {
-    // Priority is set synchronously after spawn; 10 is PRIORITY_BELOW_NORMAL.
-    assert.strictEqual(os.getPriority(child.pid), os.constants.priority.PRIORITY_BELOW_NORMAL);
+    // The game keeps the launcher's priority (no lowering).
+    assert.strictEqual(os.getPriority(child.pid), os.getPriority(process.pid));
   }
   await waitFor(() => events.some((e) => e.ch === 'game:exit'), 15000, 'game:exit');
   const exit = events.find((e) => e.ch === 'game:exit');

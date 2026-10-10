@@ -3,7 +3,8 @@
 // - The game is detached and unref'd, so it keeps running after the launcher window closes.
 // - Its output goes to a log file (not a pipe), so it never depends on the launcher staying open.
 //   While the launcher is open, new lines are streamed into the Logs view.
-// - The game runs at Below Normal priority, so other apps get the CPU first when the PC is busy.
+// - The game keeps Normal priority. Lowering it let Discord and the browser take CPU time ahead of
+//   the game, which made keyboard and mouse input lag.
 // - A couple of CPU cores are left free: the JVM sizes its GC and JIT threads from this count.
 const fs = require('fs');
 const os = require('os');
@@ -39,14 +40,6 @@ function startGameProcess({ exe, args, cwd, logFile, emit }) {
     });
   } finally {
     fs.closeSync(out); // the child keeps its own copy of the handle
-  }
-
-  if (child.pid) {
-    try {
-      os.setPriority(child.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
-    } catch {
-      // Not fatal: the game still runs, just at normal priority.
-    }
   }
 
   // Streams new log text to the UI while the launcher is open.

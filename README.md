@@ -122,11 +122,12 @@ Sushi Core replaces the vanilla title screen with its own, using a small mixin o
 
 - **Panorama:** the Sushi title screen slowly roams across an original scenic panorama (`mods/sushi-core/src/main/resources/assets/sushi-core/textures/gui/title_panorama.png`). Replace that file (keep the same size) to use your own picture.
 - **Mods are cached:** a launch reuses the mod jars from the last run when the Minecraft version hasn't changed. It skips the Modrinth lookups and downloads.
-- **Memory is capped to your PC:** the Java heap never exceeds 40% of your physical RAM (minimum 2 GB). A bigger heap pushes Windows into paging, which makes every app lag.
+- **Memory is capped to 4 GB:** the game's heap never goes above 4 GB (and never above 40% of your RAM). Minecraft with mods doesn't need more, and a bigger heap fills the RAM that Discord, your browser and Windows need. ZGC gives unused memory back after 30 seconds.
 - **Frame rate follows your monitor:** the FPS presets are capped to your monitor's refresh rate. Frames above that are never shown, so they only load the GPU.
 - **Background FPS limit:** when the game window isn't focused (another app is in front, or the game is minimized), Sushi Core drops the game to 30 FPS. It returns to your normal FPS as soon as you click back into the game.
-- **Other apps stay responsive:** Minecraft runs at Below Normal priority, so your browser and other apps get the CPU first when the PC is busy. Two CPU cores (one on 4-core PCs) are left free for them. This is automatic.
+- **Two CPU cores are left free** (one on 4-core PCs) for other apps. This is automatic.
 - **Closing the launcher doesn't close the game:** Minecraft runs as its own process. Its output goes to `%APPDATA%\.sushi\logs\game-latest.log`. While the launcher is open, the Logs page keeps showing the output.
+- **Game priority is normal:** the game isn't lowered in priority, so Discord and the browser can't take CPU time ahead of it and make keyboard and mouse input lag.
 
 ## Browse: mods, resource packs and shader packs
 

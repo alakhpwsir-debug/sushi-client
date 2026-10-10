@@ -53,8 +53,9 @@ const FPS_PRESETS = {
 function presetJvmArgs(key, javaMajor = 8) {
   const preset = FPS_PRESETS[key] || FPS_PRESETS.off;
   if (key === 'max') {
-    if (javaMajor >= 21) return ['-XX:+UseZGC', '-XX:+ZGenerational'];
-    if (javaMajor >= 17) return ['-XX:+UseZGC'];
+    // ZUncommitDelay: give unused heap back to Windows after 30 s (default 300 s).
+    if (javaMajor >= 21) return ['-XX:+UseZGC', '-XX:+ZGenerational', '-XX:ZUncommitDelay=30'];
+    if (javaMajor >= 17) return ['-XX:+UseZGC', '-XX:ZUncommitDelay=30'];
     return G1_TUNING;
   }
   return preset.jvm;

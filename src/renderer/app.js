@@ -395,9 +395,9 @@
     let body = '';
     if (S.settingsTab === 'game') {
       body = `
-        <div class="setting"><div class="txt"><b>Memory</b><span>RAM given to Minecraft. Keep 2 GB free for Windows.</span></div>
+        <div class="setting"><div class="txt"><b>Memory</b><span>RAM given to Minecraft (up to 4 GB). More than that makes other apps lag.</span></div>
           <div class="ctl"><div class="row" style="justify-content:space-between"><span class="small muted">Allocated</span><b id="memlabel">${(s.memoryMB / 1024).toFixed(1)} GB</b></div>
-            <input type="range" min="2048" max="16384" step="512" value="${s.memoryMB}" data-input="mem" data-set="memoryMB"/></div></div>
+            <input type="range" min="2048" max="4096" step="512" value="${s.memoryMB}" data-input="mem" data-set="memoryMB"/></div></div>
         <div class="setting"><div class="txt"><b>Resolution</b><span>Starting window size.</span></div>
           <div class="ctl row"><input type="number" min="640" max="7680" value="${s.width}" data-change="set" data-set="width" style="flex:1"/><span class="muted">×</span><input type="number" min="480" max="4320" value="${s.height}" data-change="set" data-set="height" style="flex:1"/></div></div>`;
     } else if (S.settingsTab === 'appearance') {
@@ -789,7 +789,7 @@
         const key = el.dataset.set;
         let value = el.value;
         if (['memoryMB', 'width', 'height'].includes(key)) value = Math.round(Number(value));
-        if (key === 'memoryMB') value = Math.min(16384, Math.max(2048, value));
+        if (key === 'memoryMB') value = Math.min(4096, Math.max(2048, value));
         await saveSettings({ [key]: value });
         if (key === 'contentUrl') S.content = await window.sushi.content.get();
         toast('Saved.', 'ok');

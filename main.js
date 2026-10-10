@@ -21,7 +21,7 @@ const DEFAULT_PROFILES = [
 ];
 
 const DEFAULT_SETTINGS = {
-  memoryMB: 6144,
+  memoryMB: 4096,
   javaPath: '',
   msClientId: '',
   width: 1280,
@@ -47,11 +47,14 @@ function modsFolderFor(p) {
   return path.join(inst, found[0], 'mods');
 }
 
-// Caps the Java heap to 40% of the PC's RAM (minimum 2 GB). The game's heap plus its native memory
-// leaves room for Windows and the apps you use; a big heap pushes the PC into paging and makes everything lag.
+// The game's heap never goes above 4 GB. Minecraft with mods doesn't need more, and a bigger heap
+// fills the RAM that Discord, the browser and Windows use, which makes everything lag.
+// It is also kept under 40% of the PC's RAM (minimum 2 GB).
+const MAX_HEAP_MB = 4096;
+
 function capMemory(requestedMB) {
   const physicalMB = Math.floor(os.totalmem() / 1048576);
-  return Math.max(2048, Math.min(requestedMB, Math.floor(physicalMB * 0.4)));
+  return Math.max(2048, Math.min(requestedMB, MAX_HEAP_MB, Math.floor(physicalMB * 0.4)));
 }
 
 // Refresh rate of the main display in Hz (0 if unknown).
@@ -77,7 +80,10 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-const readSettings = () => ({ ...DEFAULT_SETTINGS, ...readJson(paths.settings, {}) });
+const readSettings = () => {
+  const saved = { ...DEFAULT_SETTINGS, ...readJson(paths.settings, {}) };
+  return { ...saved, memoryMB: Math.min(MAX_HEAP_MB, Math.max(2048, Number(saved.memoryMB) || 4096)) };
+};
 
 // Tokens are encrypted with the OS keychain (DPAPI on Windows) when available.
 function encryptSecret(obj) {
