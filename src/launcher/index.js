@@ -75,7 +75,8 @@ async function launchGame(opts, emit) {
   }
 
   const preset = FPS_PRESETS[opts.fpsPreset] || FPS_PRESETS.off;
-  applyOptionsTxt(gameDir, { ...fitMaxFps(preset.options, opts.displayHz), resourcePacks: `[${['"vanilla"', ...packFiles].join(',')}]` });
+  const frameOptions = preset.capToRefresh ? fitMaxFps(preset.options, opts.displayHz) : preset.options;
+  applyOptionsTxt(gameDir, { ...frameOptions, resourcePacks: `[${['"vanilla"', ...packFiles].join(',')}]` });
 
   const javaPath = opts.javaPath || (await ensureJava(root, inst.javaMajor, status));
   const extraJvm = [...presetJvmArgs(opts.fpsPreset, inst.javaMajor), ...coreReserveArgs()];

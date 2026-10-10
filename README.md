@@ -122,8 +122,8 @@ Sushi Core replaces the vanilla title screen with its own, using a small mixin o
 
 - **Panorama:** the Sushi title screen slowly roams across an original scenic panorama (`mods/sushi-core/src/main/resources/assets/sushi-core/textures/gui/title_panorama.png`). Replace that file (keep the same size) to use your own picture.
 - **Mods are cached:** a launch reuses the mod jars from the last run when the Minecraft version hasn't changed. It skips the Modrinth lookups and downloads.
-- **Memory is capped to 4 GB:** the game's heap never goes above 4 GB (and never above 40% of your RAM). Minecraft with mods doesn't need more, and a bigger heap fills the RAM that Discord, your browser and Windows need. ZGC gives unused memory back after 30 seconds.
-- **Frame rate follows your monitor:** the FPS presets are capped to your monitor's refresh rate. Frames above that are never shown, so they only load the GPU.
+- **Memory is capped to 4 GB:** the game's heap never goes above 4 GB (and never above 40% of your RAM). Minecraft with mods doesn't need more, and a bigger heap fills the RAM that Discord, your browser and Windows need.
+- **FPS presets:** **Max FPS** has no frame cap and the lowest graphics settings, for the highest frame rate. It uses G1 garbage collection. **Balanced** is capped to your monitor's refresh rate, so frames above what you can see aren't drawn and the PC stays lighter.
 - **Background FPS limit:** when the game window isn't focused (another app is in front, or the game is minimized), Sushi Core drops the game to 30 FPS. It returns to your normal FPS as soon as you click back into the game.
 - **Two CPU cores are left free** (one on 4-core PCs) for other apps. This is automatic.
 - **Closing the launcher doesn't close the game:** Minecraft runs as its own process. Its output goes to `%APPDATA%\.sushi\logs\game-latest.log`. While the launcher is open, the Logs page keeps showing the output.

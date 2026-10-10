@@ -2,12 +2,17 @@
 const fs = require('fs');
 const path = require('path');
 
+// G1 with a fixed young generation sized for a 4 GB game heap. G1 costs less per frame than ZGC
+// (ZGC's memory barriers slow the game down), and it doesn't use string deduplication, which only adds CPU work.
 const G1_TUNING = [
   '-XX:+UseG1GC',
   '-XX:+ParallelRefProcEnabled',
   '-XX:MaxGCPauseMillis=50',
   '-XX:+DisableExplicitGC',
-  '-XX:+UseStringDeduplication',
+  '-XX:G1NewSizePercent=30',
+  '-XX:G1MaxNewSizePercent=40',
+  '-XX:G1HeapRegionSize=8M',
+  '-XX:G1ReservePercent=20',
 ];
 
 const FPS_PRESETS = {
@@ -19,8 +24,9 @@ const FPS_PRESETS = {
   },
   balanced: {
     label: 'Balanced',
-    description: 'Tuned G1 garbage collector, lower particles and shadows. Good for most PCs.',
+    description: 'Tuned G1 garbage collector, lower particles and shadows. Frame rate capped to your monitor, so the PC stays light.',
     jvm: G1_TUNING,
+    capToRefresh: true,
     options: {
       maxFps: '144',
       enableVsync: 'false',
@@ -34,8 +40,9 @@ const FPS_PRESETS = {
   },
   max: {
     label: 'Max FPS',
-    description: 'Lowest visual quality, highest frame rate, capped to your monitor\'s refresh rate. Uses ZGC on Java 17+.',
-    jvm: null, // chosen per Java version in presetJvmArgs
+    description: 'Lowest visual quality and no frame cap (highest frame rate). Tuned G1 garbage collector.',
+    jvm: G1_TUNING,
+    capToRefresh: false, // 260 is Minecraft's "Unlimited" setting
     options: {
       maxFps: '260',
       enableVsync: 'false',
@@ -52,12 +59,6 @@ const FPS_PRESETS = {
 
 function presetJvmArgs(key, javaMajor = 8) {
   const preset = FPS_PRESETS[key] || FPS_PRESETS.off;
-  if (key === 'max') {
-    // ZUncommitDelay: give unused heap back to Windows after 30 s (default 300 s).
-    if (javaMajor >= 21) return ['-XX:+UseZGC', '-XX:+ZGenerational', '-XX:ZUncommitDelay=30'];
-    if (javaMajor >= 17) return ['-XX:+UseZGC', '-XX:ZUncommitDelay=30'];
-    return G1_TUNING;
-  }
   return preset.jvm;
 }
 

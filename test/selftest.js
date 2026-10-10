@@ -76,7 +76,7 @@ async function waitFor(cond, timeoutMs, label) {
   });
   const line = cmd.args.join(' ');
   assert(cmd.args.includes('-Xmx6144M'));
-  assert(cmd.args.includes('-XX:+UseZGC'));
+  assert(cmd.args.includes('-XX:+UseG1GC') && !cmd.args.some((a) => a.includes('ZGC')));
   assert(line.includes('--username SushiTester'));
   assert(!line.includes('FabricMcEmu'));
   assert(!line.includes('${'), 'unfilled placeholder left in command');
@@ -123,7 +123,11 @@ async function waitFor(cond, timeoutMs, label) {
   assert.strictEqual(fitMaxFps({ maxFps: '260' }, 0).maxFps, '260', 'unknown refresh keeps the preset');
   assert.strictEqual(fitMaxFps(FPS_PRESETS.off.options, 60).maxFps, undefined, 'Off preset stays untouched');
   assert(!FPS_PRESETS.max.description.includes('260'));
-  assert(presetJvmArgs('max', 21).includes('-XX:ZUncommitDelay=30'));
+  assert.strictEqual(FPS_PRESETS.max.capToRefresh, false, 'Max FPS must stay uncapped');
+  assert.strictEqual(FPS_PRESETS.max.options.maxFps, '260', '260 is the unlimited setting');
+  assert.strictEqual(FPS_PRESETS.balanced.capToRefresh, true);
+  assert(presetJvmArgs('max', 21).includes('-XX:+UseG1GC'), 'Max FPS should use G1');
+  assert(!presetJvmArgs('max', 21).some((a) => a.includes('ZGC') || a.includes('StringDedup')), 'no ZGC / string dedup');
 
   step('CPU reserve flags');
   const { coreReserveArgs, startGameProcess } = require('../src/launcher/gameprocess');
