@@ -10,7 +10,7 @@ const { installMods, MOD_CATALOG } = require('./mods');
 const { installFabric } = require('./fabric');
 const { listVersions } = require('./versions');
 const { startGameProcess, coreReserveArgs } = require('./gameprocess');
-const { libraryDir } = require('./content');
+const { libraryDir, syncInstanceFolder } = require('./content');
 
 /**
  * opts: { root, mc, fabric, account, memoryMB, javaPath, fpsPreset, mods, content,
@@ -38,7 +38,8 @@ function copyFromLibrary(root, type, file, destDir, status) {
 
 async function launchGame(opts, emit) {
   const { root, mc, fabric, account, bundledModsDir } = opts;
-  const content = Array.isArray(opts.content) ? opts.content : [];
+  // Disabled items stay in the profile but are not installed.
+  const content = (Array.isArray(opts.content) ? opts.content : []).filter((c) => c.enabled !== false);
   const d = dirs(root);
   const status = (text) => emit('game:status', { text });
 
@@ -61,17 +62,22 @@ async function launchGame(opts, emit) {
     await installMods(gameDir, mc, mods, status, bundledModsDir, extraMods);
   }
 
-  // Resource packs: copy into the instance and list them in options.txt. Vanilla stays first.
-  const packFiles = content
-    .filter((c) => c.type === 'resourcepack')
+  // Resource packs: remove the ones no longer enabled, copy the enabled ones in, and list them in options.txt.
+  // Vanilla stays first.
+  const packs = content.filter((c) => c.type === 'resourcepack');
+  syncInstanceFolder(gameDir, 'resourcepacks', 'resourcepack', packs.map((c) => c.file));
+  const packFiles = packs
     .filter((c) => copyFromLibrary(root, 'resourcepack', c.file, path.join(gameDir, 'resourcepacks'), status))
-    .map((c) => `"file/${c.file}"`);
+    .map((c) => `\"file/${c.file}\"`);
 
-  // Shader packs: copy into the instance and point Iris at the chosen one.
+  // Shader packs: one at a time. Copy the chosen one in and point Iris at it. With none enabled, Iris shaders go off.
+  syncInstanceFolder(gameDir, 'shaderpacks', 'shader', shader ? [shader.file] : []);
+  const irisFile = path.join(gameDir, 'config', 'iris.properties');
   if (shader && copyFromLibrary(root, 'shader', shader.file, path.join(gameDir, 'shaderpacks'), status)) {
-    const irisDir = path.join(gameDir, 'config');
-    fs.mkdirSync(irisDir, { recursive: true });
-    fs.writeFileSync(path.join(irisDir, 'iris.properties'), `shaderPack=${shader.file}\nenableShaders=true\n`);
+    fs.mkdirSync(path.dirname(irisFile), { recursive: true });
+    fs.writeFileSync(irisFile, `shaderPack=${shader.file}\nenableShaders=true\n`);
+  } else if (!shader && fs.existsSync(irisFile) && fs.readFileSync(irisFile, 'utf8').includes('shaderPack=')) {
+    fs.writeFileSync(irisFile, 'shaderPack=\nenableShaders=false\n');
   }
 
   const preset = FPS_PRESETS[opts.fpsPreset] || FPS_PRESETS.off;

@@ -39,7 +39,7 @@ There are two ways. Option A needs no coding tools and gives you the `.exe`. Opt
 ## First launch checklist (updated for 0.1.0 beta 2)
 
 1. Go to **Accounts**, type a name (3-16 letters/numbers/_) and press **Add** to use an offline account. Microsoft login needs the Azure setup described in README.md.
-2. Go to **Profiles** to pick a version, loader and FPS preset. Then go to **Mods** to choose what's installed. Fabric API and Sushi Core are always on.
+2. Go to **Profiles** to pick a version, loader and FPS preset. Then go to **Manage** to choose what's installed. Fabric API and Sushi Core are always on.
 3. Go to **FPS** and keep **Max FPS** (the default), or pick Balanced if you want better visuals.
 4. At the bottom, pick **1.21.1**, keep **Fabric** ticked, and press **PLAY**. Sushi Core (the in-game HUD) is installed automatically.
 5. In game, press **Right Shift** to open the Sushi menu. Click a card to switch FPS, CPS, keystrokes, ping or coordinates on or off, then press Done.

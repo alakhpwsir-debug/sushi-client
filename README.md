@@ -112,7 +112,7 @@ News and servers come from `assets/content.json`. Edit that file and rebuild, or
 - **Header account switcher:** click the account chip to switch accounts.
 - **Play bar profile switcher:** pick a profile without leaving the page.
 - **Smooth tab changes:** the page slides in from the side you're moving toward and fades up in about a quarter of a second. Settings sub-tabs do the same. It only moves and fades the content, so it stays light. It's on by default, even when Windows' "Show animations in Windows" is off. To turn it off, go to Settings → Appearance → Animations.
-- **Open mods folder:** on the Mods page or in a profile's editor. Launch a Fabric profile once first so its folder exists.
+- **Open mods folder:** on the Manage page or in a profile's editor. Launch a Fabric profile once first so its folder exists.
 - **Settings → Appearance:** Aurora, Midnight, Nebula, or your own image (PNG or JPG, up to 2.5 MB).
 
 ## Sushi module menu
@@ -138,7 +138,7 @@ Sushi Core replaces the vanilla title screen with its own, using a small mixin o
 
 The **Browse** page searches **Modrinth** (no key needed) and **CurseForge** (free API key) for mods, resource packs and shader packs, and installs them into a shared library (`%APPDATA%\.sushi\library`). Each profile then picks what it uses:
 
-- **Mods** need a Fabric profile. Added mods are copied into the game on launch. A mod that's already on the Mods page can't be added twice.
+- **Manage** is the tab for everything a profile uses. Pick a profile, then switch between Mods, Resource packs and Shader packs. Turn items on or off with the switch, or remove them. Mods need a Fabric profile. Only one shader pack can be on at a time. Disabled items are not installed, and their copies are deleted from the game on the next launch. Removing an item deletes its library file only when no other profile uses it.
 - **Resource packs** are copied into the game and listed in the profile's packs. Vanilla stays first. The launcher sets the pack list on every launch.
 - **Shader packs** need Iris. Sushi adds Iris to the profile when a shader is chosen and writes `config/iris.properties` for you. Only one shader is active at a time.
 

@@ -259,6 +259,13 @@ function registerIpc() {
     });
   });
 
+  // Deletes a library file, but only when no profile still uses it.
+  ipcMain.handle('library:remove', (_e, { type, file } = {}) => {
+    const inUse = readSettings().profiles.some((p) => (p.content || []).some((c) => c.type === type && c.file === file));
+    if (inUse) return { deleted: false };
+    content.removeFromLibrary(ROOT, type, file);
+    return { deleted: true };
+  });
   ipcMain.handle('content:openLibrary', () => shell.openPath(path.dirname(content.libraryDir(ROOT, 'mod'))));
 
   ipcMain.handle('app:copy', (_e, text) => {

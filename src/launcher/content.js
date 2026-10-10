@@ -123,4 +123,34 @@ async function install({ root, source, type, item, mc, apiKey }) {
   return { file, type, source, id: item.id, name: item.title };
 }
 
-module.exports = { TYPES, libraryDir, search, install, searchModrinth, searchCurseForge };
+// Deletes a file from the library. Only plain file names are accepted, so nothing outside the library can be hit.
+function removeFromLibrary(root, type, file) {
+  assertType(type);
+  const name = String(file || '');
+  if (!name || path.basename(name) !== name || name.startsWith('.')) throw new Error('Bad file name');
+  fs.rmSync(path.join(libraryDir(root, type), name), { force: true });
+  return true;
+}
+
+// Keeps a game folder in step with what the profile has enabled. Files Sushi copied in earlier that
+// are no longer wanted are deleted. Files the user put in the folder by hand are never touched.
+const SYNC_MANIFEST = '.sushi-content.json';
+function syncInstanceFolder(gameDir, folder, kind, wanted) {
+  const manifest = path.join(gameDir, SYNC_MANIFEST);
+  let prev = {};
+  try {
+    prev = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  } catch {
+    prev = {};
+  }
+  const dir = path.join(gameDir, folder);
+  for (const name of prev[kind] || []) {
+    if (!wanted.includes(name)) fs.rmSync(path.join(dir, name), { force: true });
+  }
+  fs.mkdirSync(gameDir, { recursive: true });
+  fs.writeFileSync(manifest, JSON.stringify({ ...prev, [kind]: wanted }, null, 2));
+}
+
+module.exports = {
+  TYPES, libraryDir, search, install, searchModrinth, searchCurseForge, removeFromLibrary, syncInstanceFolder,
+};

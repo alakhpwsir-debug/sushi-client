@@ -259,3 +259,12 @@ img.hero-art { position: absolute; width: 330px; height: 330px; right: 24px; top
 .ccard .ctitle { margin: 0 0 3px; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ticon { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex: 0 0 auto; background: #161935; border: 1px solid var(--line2); }
 .ticon.ph { display: grid; place-items: center; font-weight: 900; color: var(--cyan2); font-size: 20px; }
+
+/* Manage page rows */
+.msec { margin: 18px 0 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.mrow { display: flex; align-items: center; gap: 14px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.mrow.off { opacity: 0.62; }
+.mrow .info { flex: 1; min-width: 0; }
+.mrow .info h4 { margin: 0 0 4px; font-size: 14px; }
+.mrow .info > div { overflow-wrap: anywhere; }
+.mrow .actions { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }

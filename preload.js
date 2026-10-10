@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('sushi', {
     openLibrary: invoke('content:openLibrary'),
   },
   profile: { openMods: invoke('profile:openMods') },
+  library: { remove: invoke('library:remove') },
   mods: { catalog: invoke('mods:catalog') },
   fps: { presets: invoke('fps:presets') },
   app: { root: invoke('app:root'), openFolder: invoke('app:openFolder'), openUrl: invoke('app:openUrl'), copy: invoke('app:copy') },

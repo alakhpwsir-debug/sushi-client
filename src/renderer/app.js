@@ -10,7 +10,7 @@
     logo: '<path d="M4 12c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8-8-3.6-8-8z" fill="none" stroke="#0a0b18" stroke-width="2"/><circle cx="12" cy="12" r="3.2" fill="#0a0b18"/>',
     home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     profiles: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
-    mods: '<path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z"/><path d="M3.5 7.4L12 12.3l8.5-4.9M12 12.3v9.2"/>',
+    manage: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h8M16 18h4"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="16" cy="18" r="2"/>',
     fps: '<path d="M13 2.5L4.5 13.5H11l-1 8 8.5-11H12z"/>',
     accounts: '<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c.8-3.8 3.8-6 7.5-6s6.7 2.2 7.5 6"/>',
     console: '<path d="M4 6l6 6-6 6M12.5 18.5H20"/>',
@@ -22,7 +22,7 @@
   const PAGES = [
     { id: 'home', label: 'Home', title: 'Home' },
     { id: 'profiles', label: 'Profiles', title: 'Profiles' },
-    { id: 'mods', label: 'Mods', title: 'Mods' },
+    { id: 'manage', label: 'Manage', title: 'Manage' },
     { id: 'content', label: 'Browse', title: 'Browse content', icon: 'store' },
     { id: 'fps', label: 'FPS', title: 'FPS Boost' },
     { id: 'accounts', label: 'Accounts', title: 'Accounts' },
@@ -43,8 +43,8 @@
     logs: [],
     msCode: null,
     editId: null,
-    modCat: 'All',
-    modQuery: '',
+    manageId: null,
+    manageTab: 'mods',
     settingsTab: 'game',
     versionAll: false,
     accMenu: false,
@@ -71,6 +71,7 @@
 
   const profiles = () => S.settings.profiles;
   const active = () => profiles().find((p) => p.id === S.settings.activeProfileId) || profiles()[0];
+  const profileOf = (id) => profiles().find((x) => x.id === id) || active();
   const editing = () => profiles().find((p) => p.id === S.editId) || active();
   const activeAcc = () => S.accounts.accounts.find((a) => a.id === S.accounts.activeId) || null;
   const presetLabel = (key) => (S.presets[key] && S.presets[key].label) || key;
@@ -150,7 +151,7 @@
   function pageHtml() {
     switch (S.page) {
       case 'profiles': return profilesPage();
-      case 'mods': return modsPage();
+      case 'manage': return managePage();
       case 'fps': return fpsPage();
       case 'accounts': return accountsPage();
       case 'console': return consolePage();
@@ -278,47 +279,81 @@
   }
 
   /* ---------- mods ---------- */
-  const MOD_CATS = ['All', 'Performance', 'HUD', 'Visuals', 'Utility', 'Required'];
+  /* ---------- manage: mods, resource packs and shader packs of one profile ---------- */
+  const MANAGE_TABS = [['mods', 'Mods'], ['resourcepack', 'Resource packs'], ['shader', 'Shader packs']];
 
-  function modsPage() {
-    const p = active();
-    const notice = p.fabric ? '' : `<div class="notice">${esc(p.name)} runs without Fabric, so mods are off. Turn on Fabric in Profiles to use them.</div>`;
-    const cats = MOD_CATS.map((c) => `<button class="cat ${S.modCat === c ? 'on' : ''}" data-act="mod-cat" data-cat="${c}">${c}</button>`).join('');
+  function managePage() {
+    const p = profileOf(S.manageId);
+    const pick = profiles().map((x) => `<option value="${x.id}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)}${x.id === S.settings.activeProfileId ? ' (active)' : ''}</option>`).join('');
+    const tabs = MANAGE_TABS.map(([k, l]) => `<button class="cat ${S.manageTab === k ? 'on' : ''}" data-act="m-tab" data-tab="${k}">${l}</button>`).join('');
+    const needsFabric = S.manageTab === 'mods' || S.manageTab === 'shader';
+    const notice = !p.fabric && needsFabric
+      ? `<div class="notice">${esc(p.name)} runs without Fabric, so ${S.manageTab === 'mods' ? 'mods' : 'shader packs'} are off. Turn on Fabric in Profiles to use them.</div>`
+      : '';
+    const body = S.manageTab === 'mods' ? modsBody(p) : packsBody(p, S.manageTab);
     return `
-      <div class="muted small" style="margin-bottom:10px">Editing mods for <b style="color:var(--text)">${esc(p.name)}</b></div>
-      ${notice}
       <div class="toolbar">
-        <input type="text" id="modq" placeholder="Search mods" value="${esc(S.modQuery)}" data-input="mod-q"/>
-        ${cats}
-        <button class="btn sm" data-act="open-mods" style="margin-left:auto">Open mods folder</button>
+        <span class="small muted">Profile</span>
+        <select data-change="m-profile" style="max-width:300px">${pick}</select>
+        <span class="small muted">${esc(p.mc)} · ${loaderLabel(p)}</span>
+        <button class="btn sm" data-act="open-mods" data-id="${p.id}" style="margin-left:auto">Open mods folder</button>
       </div>
-      <div class="mgrid" id="modgrid">${modCards()}</div>`;
+      <div class="toolbar">${tabs}</div>
+      ${notice}
+      ${body}`;
   }
 
-  function modCards() {
-    const p = active();
-    const q = S.modQuery.trim().toLowerCase();
-    const list = S.catalog.filter((m) => (S.modCat === 'All' || m.category === S.modCat)
-      && (!q || m.name.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q)));
-    if (!list.length) return '<div class="empty">No mods match your search.</div>';
-    return list.map((m) => {
+  // One row for a library item (mod, resource pack or shader pack) in the profile.
+  function itemRow(c, i, pid, locked) {
+    const on = c.enabled !== false;
+    return `
+      <div class="mrow ${on ? '' : 'off'}">
+        <div class="info">
+          <h4>${esc(c.name || c.file)} <span class="tag ${c.source === 'curseforge' ? 'p' : ''}">${SOURCE_LABEL[c.source] || esc(c.source)}</span> ${on ? '' : '<span class="tag g">Disabled</span>'}</h4>
+          <div class="small muted">${esc(c.file)}</div>
+        </div>
+        <div class="actions">
+          <label class="switch"><input type="checkbox" data-change="citem" data-pid="${pid}" data-idx="${i}" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}/><span></span></label>
+          <button class="btn sm danger" data-act="m-remove" data-pid="${pid}" data-idx="${i}">Remove</button>
+        </div>
+      </div>`;
+  }
+
+  function modsBody(p) {
+    const catalog = S.catalog.map((m) => {
       const required = m.required || m.slug === 'fabric-api';
       const on = required || (p.fabric && p.mods.includes(m.slug));
-      const disabled = required || !p.fabric;
-      const initialsTxt = m.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      const locked = required || !p.fabric;
+      const tags = `${m.category ? `<span class="tag g">${esc(m.category)}</span>` : ''} ${m.bundled ? '<span class="tag p">Bundled</span>' : ''}`;
       return `
-        <div class="mcard ${on ? 'on' : ''}">
-          <div class="icon">${esc(initialsTxt)}</div>
-          <div class="body">
-            <h4>${esc(m.name)} ${m.category ? `<span class="tag g">${esc(m.category)}</span>` : ''} ${m.bundled ? '<span class="tag p">Bundled</span>' : ''}</h4>
-            <p>${esc(m.desc)}</p>
-            <div class="row" style="margin-top:10px;justify-content:space-between">
-              ${required ? '<span class="small muted">Always installed</span>' : `<span class="small muted">${p.fabric ? (on ? 'Enabled' : 'Disabled') : 'Needs Fabric'}</span>`}
-              <label class="switch"><input type="checkbox" data-change="mod" data-slug="${esc(m.slug)}" ${on ? 'checked' : ''} ${disabled ? 'disabled' : ''}/><span></span></label>
-            </div>
+        <div class="mrow ${on ? '' : 'off'}">
+          <div class="info"><h4>${esc(m.name)} ${tags}</h4><div class="small muted">${esc(m.desc)}</div></div>
+          <div class="actions">
+            ${required ? '<span class="small muted">Always on</span>' : ''}
+            <label class="switch"><input type="checkbox" data-change="mod" data-pid="${p.id}" data-slug="${esc(m.slug)}" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}/><span></span></label>
           </div>
         </div>`;
     }).join('');
+    const extra = (p.content || []).map((c, i) => ({ c, i })).filter(({ c }) => c.type === 'mod');
+    const extraHtml = extra.length
+      ? extra.map(({ c, i }) => itemRow(c, i, p.id, !p.fabric)).join('')
+      : `<div class="empty">No extra mods yet. <button class="btn sm" data-act="m-browse" data-type="mod" style="margin-left:8px">Browse mods</button></div>`;
+    return `
+      <div class="msec">Sushi and recommended</div>
+      ${catalog}
+      <div class="msec">From Browse</div>
+      ${extraHtml}`;
+  }
+
+  function packsBody(p, type) {
+    const list = (p.content || []).map((c, i) => ({ c, i })).filter(({ c }) => c.type === type);
+    const hint = type === 'shader'
+      ? 'Only one shader pack can be on at a time. Shader packs run through Iris, which Sushi adds for you.'
+      : 'Enabled resource packs are applied on top of the vanilla pack.';
+    const rows = list.length
+      ? list.map(({ c, i }) => itemRow(c, i, p.id, type === 'shader' && !p.fabric)).join('')
+      : `<div class="empty">No ${type === 'shader' ? 'shader packs' : 'resource packs'} for this profile yet. <button class="btn sm" data-act="m-browse" data-type="${type}" style="margin-left:8px">Browse ${type === 'shader' ? 'shaders' : 'resource packs'}</button></div>`;
+    return `<div class="muted small" style="margin-bottom:12px">${hint}</div>${rows}`;
   }
 
   /* ---------- fps ---------- */
@@ -652,7 +687,7 @@
         const p = active();
         if (!r) break;
         if (r.type === 'mod' && S.catalog.some((m) => m.name.toLowerCase() === r.title.toLowerCase())) {
-          toast(`${r.title} is already on the Mods page. Turn it on there instead.`, 'bad');
+          toast(`${r.title} is already on the Manage page. Turn it on there instead.`, 'bad');
           break;
         }
         S.cBusyIdx = idx;
@@ -717,7 +752,25 @@
         await saveSettings({ profiles: list, activeProfileId: activeId });
         break;
       }
-      case 'mod-cat': S.modCat = el.dataset.cat; render(); break;
+      case 'm-tab': S.manageTab = el.dataset.tab; render(); break;
+      case 'm-browse':
+        S.cType = el.dataset.type;
+        S.page = 'content';
+        render();
+        await runSearch();
+        break;
+      case 'm-remove': {
+        const p = profileOf(el.dataset.pid);
+        const idx = Number(el.dataset.idx);
+        const item = (p.content || [])[idx];
+        if (!item) break;
+        await updateProfile(p.id, { content: p.content.filter((_, i) => i !== idx) });
+        const res = await window.sushi.library.remove({ type: item.type, file: item.file });
+        toast(res.deleted
+          ? `Removed ${item.name || item.file} and deleted its file.`
+          : `Removed from ${p.name}. Another profile still uses the file, so it stays in your library.`, 'ok');
+        break;
+      }
       case 'preset':
         await updateProfile(active().id, { fpsPreset: el.dataset.key });
         break;
@@ -831,8 +884,19 @@
         await saveSettings({ animations: el.checked });
       } else if (kind === 'ver-all') {
         S.versionAll = el.checked; render();
+      } else if (kind === 'm-profile') {
+        S.manageId = el.value;
+        render();
+      } else if (kind === 'citem') {
+        const p = profileOf(el.dataset.pid);
+        const i = Number(el.dataset.idx);
+        let list = (p.content || []).map((c, j) => (j === i ? { ...c, enabled: el.checked } : c));
+        if (el.checked && list[i].type === 'shader') {
+          list = list.map((c, j) => (c.type === 'shader' && j !== i ? { ...c, enabled: false } : c));
+        }
+        await updateProfile(p.id, { content: list });
       } else if (kind === 'mod') {
-        const p = active();
+        const p = profileOf(el.dataset.pid);
         const slug = el.dataset.slug;
         const mods = el.checked ? [...new Set([...p.mods, slug])] : p.mods.filter((m) => m !== slug);
         await updateProfile(p.id, { mods });
@@ -859,11 +923,7 @@
 
   document.addEventListener('input', (e) => {
     const el = e.target;
-    if (el.dataset.input === 'mod-q') {
-      S.modQuery = el.value;
-      const grid = document.getElementById('modgrid');
-      if (grid) grid.innerHTML = modCards();
-    } else if (el.dataset.input === 'c-query') {
+    if (el.dataset.input === 'c-query') {
       S.cQuery = el.value;
     } else if (el.dataset.input === 'mem') {
       const label = document.getElementById('memlabel');

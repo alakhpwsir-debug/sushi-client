@@ -217,6 +217,28 @@ process.exit(0); // the launcher closes right away`,
   assert.strictEqual(resolveMemory(100, 16 * GB), 1024);
   assert.strictEqual(resolveMemory('junk', 16 * GB), 6144);
 
+  step('manage: disabled packs are removed from the game, user files are kept');
+  const content = require('../src/launcher/content');
+  const game = path.join(root, 'manage-game');
+  const packDir = path.join(game, 'resourcepacks');
+  fs.mkdirSync(packDir, { recursive: true });
+  content.syncInstanceFolder(game, 'resourcepacks', 'resourcepack', ['a.zip', 'b.zip']);
+  fs.writeFileSync(path.join(packDir, 'a.zip'), 'a');
+  fs.writeFileSync(path.join(packDir, 'b.zip'), 'b');
+  fs.writeFileSync(path.join(packDir, 'mine.zip'), 'user file');
+  content.syncInstanceFolder(game, 'resourcepacks', 'resourcepack', ['a.zip']);
+  assert(fs.existsSync(path.join(packDir, 'a.zip')), 'enabled pack was removed');
+  assert(!fs.existsSync(path.join(packDir, 'b.zip')), 'disabled pack was kept');
+  assert(fs.existsSync(path.join(packDir, 'mine.zip')), 'user file was deleted');
+
+  step('manage: removing a library file only accepts plain names');
+  const libFile = path.join(content.libraryDir(root, 'resourcepack'), 'gone.zip');
+  fs.writeFileSync(libFile, 'x');
+  assert.throws(() => content.removeFromLibrary(root, 'resourcepack', '../../secret.txt'), /Bad file name/);
+  assert.throws(() => content.removeFromLibrary(root, 'resourcepack', '.hidden'), /Bad file name/);
+  content.removeFromLibrary(root, 'resourcepack', 'gone.zip');
+  assert(!fs.existsSync(libFile), 'library file was not removed');
+
   fs.rmSync(root, { recursive: true, force: true });
   console.log('\nAll checks passed.');
 })().catch((err) => {
