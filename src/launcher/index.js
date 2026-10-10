@@ -1,7 +1,6 @@
 // Orchestrates a launch: install -> mods + content -> FPS preset -> java -> spawn game.
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 const { dirs } = require('./paths');
 const { installVersion } = require('./install');
 const { ensureJava } = require('./java');
@@ -10,6 +9,7 @@ const { FPS_PRESETS, presetJvmArgs, applyOptionsTxt } = require('./fpsboost');
 const { installMods, MOD_CATALOG } = require('./mods');
 const { installFabric } = require('./fabric');
 const { listVersions } = require('./versions');
+const { startGameProcess, coreReserveArgs } = require('./gameprocess');
 const { libraryDir } = require('./content');
 
 /**
@@ -78,7 +78,7 @@ async function launchGame(opts, emit) {
   applyOptionsTxt(gameDir, { ...preset.options, resourcePacks: `[${['"vanilla"', ...packFiles].join(',')}]` });
 
   const javaPath = opts.javaPath || (await ensureJava(root, inst.javaMajor, status));
-  const extraJvm = presetJvmArgs(opts.fpsPreset, inst.javaMajor);
+  const extraJvm = [...presetJvmArgs(opts.fpsPreset, inst.javaMajor), ...coreReserveArgs()];
 
   const { exe, args } = buildCommand({
     root,
@@ -98,11 +98,13 @@ async function launchGame(opts, emit) {
   });
 
   status('Starting Minecraft...');
-  const child = spawn(exe, args, { cwd: gameDir, windowsHide: true });
-  child.stdout.on('data', (b) => emit('game:log', { text: b.toString() }));
-  child.stderr.on('data', (b) => emit('game:log', { text: b.toString() }));
-  child.on('error', (err) => emit('game:status', { text: `Could not start Java: ${err.message}` }));
-  child.on('exit', (code) => emit('game:exit', { code }));
+  const child = startGameProcess({
+    exe,
+    args,
+    cwd: gameDir,
+    logFile: path.join(root, 'logs', 'game-latest.log'),
+    emit,
+  });
   return child.pid;
 }
 

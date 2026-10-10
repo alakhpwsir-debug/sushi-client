@@ -19,6 +19,15 @@ const { MOD_CATALOG } = require('../src/launcher/mods');
 
 const step = (name) => console.log(`- ${name}`);
 
+// Polls until cond() is true, or fails after timeoutMs.
+async function waitFor(cond, timeoutMs, label) {
+  const start = Date.now();
+  while (!cond()) {
+    if (Date.now() - start > timeoutMs) throw new Error(`timed out waiting for ${label}`);
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 (async () => {
   step('rules');
   assert.strictEqual(allowed(undefined), true);
@@ -106,6 +115,71 @@ const step = (name) => console.log(`- ${name}`);
   assert(MOD_CATALOG.length >= 5);
   assert(MOD_CATALOG.find((m) => m.slug === 'sushi-core' && m.bundled));
   assert(fs.existsSync(path.join(__dirname, '..', 'assets', 'mods', 'sushi-core-1.21.1.jar')), 'bundled jar missing');
+
+  step('CPU reserve flags');
+  const { coreReserveArgs, startGameProcess } = require('../src/launcher/gameprocess');
+  assert.deepStrictEqual(coreReserveArgs(2), []);
+  assert.deepStrictEqual(coreReserveArgs(6), ['-XX:ActiveProcessorCount=5']);
+  assert.deepStrictEqual(coreReserveArgs(12), ['-XX:ActiveProcessorCount=10']);
+
+  step('game process: streams log, reports exit, below-normal priority');
+  const fakeGame = path.join(root, 'fake-game.js');
+  const marker = path.join(root, 'fake-game.done');
+  fs.writeFileSync(
+    fakeGame,
+    `const fs = require('fs');
+let n = 0;
+const t = setInterval(() => {
+  console.log('tick ' + (++n));
+  if (n === 4) { clearInterval(t); fs.writeFileSync(process.argv[2], 'done'); process.exit(7); }
+}, 150);`,
+  );
+  const events = [];
+  const logFile = path.join(root, 'logs', 'game-latest.log');
+  const child = startGameProcess({
+    exe: process.execPath,
+    args: [fakeGame, marker],
+    cwd: root,
+    logFile,
+    emit: (ch, data) => events.push({ ch, data }),
+  });
+  assert(child.pid > 0);
+  if (process.platform !== 'win32') {
+    // Priority is set synchronously after spawn; 10 is PRIORITY_BELOW_NORMAL.
+    assert.strictEqual(os.getPriority(child.pid), os.constants.priority.PRIORITY_BELOW_NORMAL);
+  }
+  await waitFor(() => events.some((e) => e.ch === 'game:exit'), 15000, 'game:exit');
+  const exit = events.find((e) => e.ch === 'game:exit');
+  assert.strictEqual(exit.data.code, 7);
+  const streamed = events.filter((e) => e.ch === 'game:log').map((e) => e.data.text).join('');
+  assert(streamed.includes('tick 1') && streamed.includes('tick 4'), 'log lines were not streamed');
+  assert(fs.readFileSync(logFile, 'utf8').includes('tick 4'), 'log file missing output');
+
+  step('game keeps running after the launcher process exits');
+  const marker2 = path.join(root, 'fake-long.done');
+  fs.writeFileSync(
+    path.join(root, 'fake-long.js'),
+    `const fs = require('fs');
+let n = 0;
+const t = setInterval(() => {
+  console.log('long ' + (++n));
+  if (n === 8) { clearInterval(t); fs.writeFileSync(process.argv[2], 'done'); }
+}, 150);`,
+  );
+  const launcherSim = path.join(root, 'launcher-sim.js');
+  fs.writeFileSync(
+    launcherSim,
+    `const { startGameProcess } = require(${JSON.stringify(path.join(__dirname, '..', 'src', 'launcher', 'gameprocess.js'))});
+const c = startGameProcess({ exe: process.execPath, args: [${JSON.stringify(path.join(root, 'fake-long.js'))}, ${JSON.stringify(marker2)}],
+  cwd: ${JSON.stringify(root)}, logFile: ${JSON.stringify(path.join(root, 'logs', 'long.log'))}, emit: () => {} });
+console.log('pid ' + c.pid);
+process.exit(0); // the launcher closes right away`,
+  );
+  const sim = require('child_process').spawnSync(process.execPath, [launcherSim], { encoding: 'utf8' });
+  assert.strictEqual(sim.status, 0, 'launcher simulation failed: ' + sim.stderr);
+  assert(!fs.existsSync(marker2), 'game finished before the launcher exited (test is not meaningful)');
+  await waitFor(() => fs.existsSync(marker2), 10000, 'game to finish after launcher exit');
+  assert(fs.readFileSync(path.join(root, 'logs', 'long.log'), 'utf8').includes('long 8'), 'game stopped early');
 
   fs.rmSync(root, { recursive: true, force: true });
   console.log('\nAll checks passed.');
