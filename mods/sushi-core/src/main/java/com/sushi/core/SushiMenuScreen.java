@@ -1,8 +1,11 @@
 package com.sushi.core;
 
+import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 
 import static com.sushi.core.SushiTheme.*;
@@ -14,7 +17,14 @@ public class SushiMenuScreen extends Screen {
     private static final int CARD_H = 92;
     private static final int GAP = 14;
 
+    /** How long the open animation lasts. Short, so it feels snappy. */
+    private static final long OPEN_NANOS = 240_000_000L;
+
     private final Screen parent;
+    /** Set on the game clock each opening, so every open plays the animation. */
+    private final long openedAt = System.nanoTime();
+    /** 0 = invisible, 1 = fully shown. Read by the drawing code while the animation runs. */
+    private float fade = 1f;
 
     public SushiMenuScreen() {
         this(null);
@@ -33,6 +43,48 @@ public class SushiMenuScreen extends Screen {
     @Override
     public boolean shouldPause() {
         return false;
+    }
+
+    /** Eased 0 to 1 over OPEN_NANOS (ease-out cubic, so it lands softly). */
+    private float openProgress() {
+        float t = (System.nanoTime() - openedAt) / (float) OPEN_NANOS;
+        if (t >= 1f) return 1f;
+        if (t <= 0f) return 0f;
+        float inv = 1f - t;
+        return 1f - inv * inv * inv;
+    }
+
+    /** Fades an ARGB colour by the given factor (0 to 1). */
+    private static int fadeColor(int argb, float f) {
+        int a = Math.round(((argb >>> 24) & 0xFF) * f);
+        return a <= 0 ? 0 : (a << 24) | (argb & 0xFFFFFF);
+    }
+
+    /** Plays the open animation: the menu rises, scales up from 94% and fades in. */
+    @Override
+    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        float p = openProgress();
+        if (p >= 1f) {
+            if (fade != 1f) setButtonsAlpha(1f);
+            fade = 1f;
+            super.render(ctx, mouseX, mouseY, delta);
+            return;
+        }
+        fade = p;
+        setButtonsAlpha(p);
+        ctx.getMatrices().push();
+        float s = 0.94f + 0.06f * p;
+        ctx.getMatrices().translate(width / 2f, height / 2f + (1f - p) * 12f, 0f);
+        ctx.getMatrices().scale(s, s, 1f);
+        ctx.getMatrices().translate(-width / 2f, -height / 2f, 0f);
+        super.render(ctx, mouseX, mouseY, delta);
+        ctx.getMatrices().pop();
+    }
+
+    private void setButtonsAlpha(float a) {
+        for (Element e : children()) {
+            if (e instanceof ClickableWidget w) w.setAlpha(a);
+        }
     }
 
     private int startX() {
@@ -81,19 +133,32 @@ public class SushiMenuScreen extends Screen {
 
     @Override
     public void renderBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, width, height, 0xC8070910);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("SUSHI CLIENT"), width / 2, 24, CYAN);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Modules"), width / 2, 38, MUTED);
+        float f = fade;
+        // The dim is drawn a little past the screen edges so the scale-up leaves no gap.
+        ctx.fill(-48, -48, width + 48, height + 48, fadeColor(0xC8070910, f));
+        drawCenteredFaded(ctx, "SUSHI CLIENT", width / 2, 24, fadeColor(CYAN, f));
+        drawCenteredFaded(ctx, "Modules", width / 2, 38, fadeColor(MUTED, f));
         for (int i = 0; i < SushiConfig.NAMES.length; i++) {
             int x = cardX(i);
             int y = cardY(i);
             boolean on = SushiConfig.enabled[i];
-            ctx.fill(x - 1, y - 1, x + CARD_W + 1, y + CARD_H + 1, on ? PURPLE_DIM : CARD_BORDER);
-            ctx.fill(x, y, x + CARD_W, y + CARD_H, CARD_BG);
-            ctx.fill(x, y, x + CARD_W, y + 2, on ? CYAN : DISABLED);
-            ctx.drawText(textRenderer, SushiConfig.NAMES[i], x + 16, y + 14, on ? TEXT : MUTED, true);
-            ctx.drawText(textRenderer, SushiConfig.DESCS[i], x + 16, y + 28, MUTED, false);
+            ctx.fill(x - 1, y - 1, x + CARD_W + 1, y + CARD_H + 1, fadeColor(on ? PURPLE_DIM : CARD_BORDER, f));
+            ctx.fill(x, y, x + CARD_W, y + CARD_H, fadeColor(CARD_BG, f));
+            ctx.fill(x, y, x + CARD_W, y + 2, fadeColor(on ? CYAN : DISABLED, f));
+            drawTextFaded(ctx, SushiConfig.NAMES[i], x + 16, y + 14, fadeColor(on ? TEXT : MUTED, f), true);
+            drawTextFaded(ctx, SushiConfig.DESCS[i], x + 16, y + 28, fadeColor(MUTED, f), false);
         }
+    }
+
+    /** Skips text whose colour has faded to nothing (a zero alpha would draw it fully opaque). */
+    private void drawTextFaded(DrawContext ctx, String text, int x, int y, int color, boolean shadow) {
+        if ((color >>> 24) == 0) return;
+        ctx.drawText(textRenderer, text, x, y, color, shadow);
+    }
+
+    private void drawCenteredFaded(DrawContext ctx, String text, int cx, int y, int color) {
+        if ((color >>> 24) == 0) return;
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(text), cx, y, color);
     }
 
     private static Text label(int i) {

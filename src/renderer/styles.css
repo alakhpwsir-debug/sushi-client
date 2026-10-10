@@ -54,6 +54,13 @@ button { cursor: pointer; }
 .right-tools { display: flex; align-items: center; gap: 10px; }
 
 .content { flex: 1; overflow-y: auto; padding: 8px 26px 26px; }
+/* Tab change: slide in from the side you're moving toward and fade up (transform + opacity only). */
+.content.tab-in { animation: tab-in 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes tab-in {
+  from { opacity: 0; transform: translate3d(calc(var(--dir, 1) * 24px), 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .content.tab-in { animation: none; } }
 .content::-webkit-scrollbar { width: 10px; }
 .content::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
 

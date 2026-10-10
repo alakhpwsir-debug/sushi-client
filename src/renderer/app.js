@@ -548,6 +548,23 @@
     app.innerHTML = shell();
   }
 
+  /* ---------- tab transitions ---------- */
+  // The content area slides in from the side you're moving toward and fades up.
+  // Only transform and opacity change, so the browser runs it on the GPU and it stays light.
+  const TAB_ORDER = [...PAGES.map((pg) => pg.id), 'settings'];
+  const SETTINGS_ORDER = ['game', 'appearance', 'java', 'azure', 'launcher'];
+  const REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function playTabIn(dir) {
+    if (REDUCE_MOTION || !dir) return; // same tab clicked again: no animation
+    const c = document.getElementById('content');
+    if (!c) return;
+    c.style.setProperty('--dir', dir >= 0 ? '1' : '-1');
+    c.classList.remove('tab-in');
+    void c.offsetWidth; // restart the animation
+    c.classList.add('tab-in');
+  }
+
   function refreshLive() {
     const pb = document.getElementById('playbar');
     if (pb) pb.innerHTML = playbarHtml();
@@ -586,11 +603,14 @@
 
   async function act(name, el) {
     switch (name) {
-      case 'page':
+      case 'page': {
+        const from = TAB_ORDER.indexOf(S.page);
         S.page = el.dataset.page;
         render();
+        playTabIn(TAB_ORDER.indexOf(S.page) - from);
         if (S.page === 'content' && S.cResults === null) await runSearch();
         break;
+      }
       case 'c-type':
         S.cType = el.dataset.type;
         await runSearch();
@@ -604,6 +624,7 @@
         S.page = 'settings';
         S.settingsTab = 'launcher';
         render();
+        playTabIn(1);
         break;
       case 'open-cf-console': window.sushi.app.openUrl('https://console.curseforge.com/'); break;
       case 'c-open-lib': window.sushi.content.openLibrary(); break;
@@ -727,7 +748,13 @@
         S.settings = await window.sushi.settings.set({ background: el.dataset.key });
         render();
         break;
-      case 'stab': S.settingsTab = el.dataset.tab; render(); break;
+      case 'stab': {
+        const from = SETTINGS_ORDER.indexOf(S.settingsTab);
+        S.settingsTab = el.dataset.tab;
+        render();
+        playTabIn(SETTINGS_ORDER.indexOf(S.settingsTab) - from);
+        break;
+      }
       case 'open-folder': window.sushi.app.openFolder(); break;
       case 'reset-profiles':
         S.settings = await window.sushi.settings.resetProfiles();

@@ -111,8 +111,13 @@ News and servers come from `assets/content.json`. Edit that file and rebuild, or
 
 - **Header account switcher:** click the account chip to switch accounts.
 - **Play bar profile switcher:** pick a profile without leaving the page.
+- **Smooth tab changes:** the page slides in from the side you're moving toward and fades up in about a quarter of a second. Settings sub-tabs do the same. It only moves and fades the content, so it stays light. Windows' "reduce motion" setting turns it off.
 - **Open mods folder:** on the Mods page or in a profile's editor. Launch a Fabric profile once first so its folder exists.
 - **Settings → Appearance:** Aurora, Midnight, Nebula, or your own image (PNG or JPG, up to 2.5 MB).
+
+## Sushi module menu
+
+Press **Right Shift** in game to open the Sushi menu. It fades in and rises into place in about a quarter of a second. Each time you open it, the animation plays again.
 
 ## Sushi title screen
 
