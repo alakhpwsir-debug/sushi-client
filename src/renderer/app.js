@@ -401,7 +401,7 @@
         <div class="setting"><div class="txt"><b>Resolution</b><span>Starting window size.</span></div>
           <div class="ctl row"><input type="number" min="640" max="7680" value="${s.width}" data-change="set" data-set="width" style="flex:1"/><span class="muted">×</span><input type="number" min="480" max="4320" value="${s.height}" data-change="set" data-set="height" style="flex:1"/></div></div>`;
     } else if (S.settingsTab === 'appearance') {
-      body = appearanceBody(s);
+      body = appearanceBody(s) + animationRow(s);
     } else if (S.settingsTab === 'java') {
       body = `
         <div class="setting"><div class="txt"><b>Java path</b><span>Leave empty to let Sushi download Java 21 for you.</span></div>
@@ -437,6 +437,14 @@
         ${items}
         <div class="dd-sep"></div>
         <button class="dd-item" data-act="page" data-page="accounts">+ Add or manage accounts</button>
+      </div>`;
+  }
+
+  function animationRow(s) {
+    return `
+      <div class="setting" style="margin-top:18px">
+        <div class="txt"><b>Animations</b><span>Smooth tab changes in the launcher. Turn off for a plain switch.</span></div>
+        <div class="ctl"><label class="switch"><input type="checkbox" data-change="anim" ${s.animations === false ? '' : 'checked'}/><span></span></label></div>
       </div>`;
   }
 
@@ -553,10 +561,11 @@
   // Only transform and opacity change, so the browser runs it on the GPU and it stays light.
   const TAB_ORDER = [...PAGES.map((pg) => pg.id), 'settings'];
   const SETTINGS_ORDER = ['game', 'appearance', 'java', 'azure', 'launcher'];
-  const REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function playTabIn(dir) {
-    if (REDUCE_MOTION || !dir) return; // same tab clicked again: no animation
+    // Off only when the user turns it off in Settings. The Windows reduce-motion flag is ignored on purpose,
+    // since it hid the animation on PCs with "Show animations in Windows" off.
+    if (!dir || (S.settings && S.settings.animations === false)) return; // same tab clicked again: no animation
     const c = document.getElementById('content');
     if (!c) return;
     c.style.setProperty('--dir', dir >= 0 ? '1' : '-1');
@@ -805,6 +814,8 @@
         await updateProfile(el.dataset.id, { fabric: el.checked });
       } else if (kind === 'profile-preset') {
         await updateProfile(el.dataset.id, { fpsPreset: el.value });
+      } else if (kind === 'anim') {
+        await saveSettings({ animations: el.checked });
       } else if (kind === 'ver-all') {
         S.versionAll = el.checked; render();
       } else if (kind === 'mod') {

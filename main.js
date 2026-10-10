@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   customBackground: '',
   contentUrl: '',
   curseforgeKey: '',
+  animations: true,
 };
 
 // Finds the mods folder for a profile. Fabric instances are named after the Fabric profile id,
