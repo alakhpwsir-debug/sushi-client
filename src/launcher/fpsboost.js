@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Stable (non-experimental) G1 flags for the 4 GB game heap. G1 costs less per frame than ZGC
+// Stable (non-experimental) G1 flags for the game heap. G1 costs less per frame than ZGC
 // (ZGC's memory barriers slow the game down). String deduplication is left out: it only adds CPU work.
 // Every flag here was checked against JDK 21 with -version. Experimental flags need
 // -XX:+UnlockExperimentalVMOptions, so don't add any without it.

@@ -198,6 +198,25 @@ process.exit(0); // the launcher closes right away`,
   await waitFor(() => fs.existsSync(marker2), 10000, 'game to finish after launcher exit');
   assert(fs.readFileSync(path.join(root, 'logs', 'long.log'), 'utf8').includes('long 8'), 'game stopped early');
 
+  step('memory: user picks RAM within what the PC has');
+  const { memoryLimits, resolveMemory } = require('../src/launcher/memory');
+  const GB = 1024 * 1024 * 1024;
+  assert.deepStrictEqual(
+    [memoryLimits(4 * GB).maxMB, memoryLimits(4 * GB).recommendedMB],
+    [3072, 2048],
+    '4 GB PC: max 3 GB, recommended 2 GB',
+  );
+  assert.strictEqual(memoryLimits(16 * GB).maxMB, 15360);
+  assert.strictEqual(memoryLimits(16 * GB).recommendedMB, 6144);
+  assert.strictEqual(memoryLimits(64 * GB).recommendedMB, 8192, 'recommended is capped at 8 GB');
+  assert.strictEqual(memoryLimits(2 * GB).maxMB, 1024, 'tiny PC still gets the 1 GB minimum');
+  assert.strictEqual(resolveMemory(0, 4 * GB), 2048, '0 means recommended');
+  assert.strictEqual(resolveMemory(4096, 4 * GB), 3072, 'a 4 GB PC cannot take 4 GB and leave Windows nothing');
+  assert.strictEqual(resolveMemory(4096, 16 * GB), 4096, 'user choice is kept when the PC allows it');
+  assert.strictEqual(resolveMemory(12288, 16 * GB), 12288, 'above 4 GB is allowed when the PC has it');
+  assert.strictEqual(resolveMemory(100, 16 * GB), 1024);
+  assert.strictEqual(resolveMemory('junk', 16 * GB), 6144);
+
   fs.rmSync(root, { recursive: true, force: true });
   console.log('\nAll checks passed.');
 })().catch((err) => {

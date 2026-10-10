@@ -127,7 +127,7 @@ Sushi Core replaces the vanilla title screen with its own, using a small mixin o
 
 - **Panorama:** the Sushi title screen slowly roams across an original scenic panorama (`mods/sushi-core/src/main/resources/assets/sushi-core/textures/gui/title_panorama.png`). Replace that file (keep the same size) to use your own picture.
 - **Mods are cached:** a launch reuses the mod jars from the last run when the Minecraft version hasn't changed. It skips the Modrinth lookups and downloads.
-- **Memory is capped to 4 GB:** the game's heap never goes above 4 GB (and never above 40% of your RAM). Minecraft with mods doesn't need more, and a bigger heap fills the RAM that Discord, your browser and Windows need.
+- **Memory is your choice:** Settings → Game → Memory sets how much RAM Minecraft gets. The slider goes up to your PC's RAM minus 1 GB, so Windows always keeps some. The recommended amount is 40% of your RAM (2 GB on a 4 GB PC). Going above it can make other apps lag, and the launcher warns you when you do. Use recommended resets it.
 - **FPS presets:** **Max FPS** has no frame cap and the lowest graphics settings, for the highest frame rate. It uses G1 garbage collection. **Balanced** is capped to your monitor's refresh rate, so frames above what you can see aren't drawn and the PC stays lighter.
 - **Background FPS limit:** when the game window isn't focused (another app is in front, or the game is minimized), Sushi Core drops the game to 30 FPS. It returns to your normal FPS as soon as you click back into the game.
 - **Two CPU cores are left free** (one on 4-core PCs) for other apps. This is automatic.

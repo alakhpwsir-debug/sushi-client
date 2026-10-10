@@ -6,6 +6,7 @@ const os = require('os');
 const { ROOT, dirs } = require('./src/launcher/paths');
 const core = require('./src/launcher');
 const auth = require('./src/launcher/auth');
+const { memoryLimits, resolveMemory } = require('./src/launcher/memory');
 const { fetchJson } = require('./src/launcher/http');
 const content = require('./src/launcher/content');
 
@@ -21,7 +22,7 @@ const DEFAULT_PROFILES = [
 ];
 
 const DEFAULT_SETTINGS = {
-  memoryMB: 4096,
+  memoryMB: 0, // 0 = use the recommended amount for this PC
   javaPath: '',
   msClientId: '',
   width: 1280,
@@ -48,14 +49,9 @@ function modsFolderFor(p) {
   return path.join(inst, found[0], 'mods');
 }
 
-// The game's heap never goes above 4 GB. Minecraft with mods doesn't need more, and a bigger heap
-// fills the RAM that Discord, the browser and Windows use, which makes everything lag.
-// It is also kept under 40% of the PC's RAM (minimum 2 GB).
-const MAX_HEAP_MB = 4096;
-
+// The user chooses the game's RAM in Settings. It is kept within what this PC can give (see memory.js).
 function capMemory(requestedMB) {
-  const physicalMB = Math.floor(os.totalmem() / 1048576);
-  return Math.max(2048, Math.min(requestedMB, MAX_HEAP_MB, Math.floor(physicalMB * 0.4)));
+  return resolveMemory(requestedMB, os.totalmem());
 }
 
 // Refresh rate of the main display in Hz (0 if unknown).
@@ -83,7 +79,7 @@ function writeJson(file, data) {
 
 const readSettings = () => {
   const saved = { ...DEFAULT_SETTINGS, ...readJson(paths.settings, {}) };
-  return { ...saved, memoryMB: Math.min(MAX_HEAP_MB, Math.max(2048, Number(saved.memoryMB) || 4096)) };
+  return { ...saved, memoryMB: capMemory(saved.memoryMB) };
 };
 
 // Tokens are encrypted with the OS keychain (DPAPI on Windows) when available.
@@ -142,9 +138,11 @@ function registerIpc() {
   ipcMain.handle('settings:get', () => readSettings());
   ipcMain.handle('settings:set', (_e, patch) => {
     const next = { ...readSettings(), ...patch };
+    next.memoryMB = capMemory(next.memoryMB);
     writeJson(paths.settings, next);
     return next;
   });
+  ipcMain.handle('settings:memory', () => memoryLimits(os.totalmem()));
 
   ipcMain.handle('settings:resetProfiles', () => {
     const next = { ...readSettings(), profiles: DEFAULT_PROFILES, activeProfileId: DEFAULT_SETTINGS.activeProfileId };

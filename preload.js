@@ -5,7 +5,7 @@ const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 const EVENTS = ['game:status', 'game:log', 'game:exit', 'ms:code'];
 
 contextBridge.exposeInMainWorld('sushi', {
-  settings: { get: invoke('settings:get'), set: invoke('settings:set'), resetProfiles: invoke('settings:resetProfiles') },
+  settings: { get: invoke('settings:get'), set: invoke('settings:set'), resetProfiles: invoke('settings:resetProfiles'), memory: invoke('settings:memory') },
   versions: { list: invoke('versions:list') },
   accounts: {
     list: invoke('accounts:list'),

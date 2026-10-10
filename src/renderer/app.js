@@ -32,6 +32,7 @@
   const S = {
     page: 'home',
     settings: null,
+    mem: null,
     versions: [],
     accounts: { activeId: null, accounts: [] },
     catalog: [],
@@ -388,6 +389,12 @@
   }
 
   /* ---------- settings ---------- */
+  const gb = (mb) => (Number(mb) / 1024).toFixed(1);
+  function memWarn(mb) {
+    const m = S.mem;
+    if (!m || Number(mb) <= m.recommendedMB) return '';
+    return `Above the recommended ${gb(m.recommendedMB)} GB. Other apps may lag while Minecraft runs.`;
+  }
   function settingsPage() {
     const s = S.settings;
     const tabs = [['game', 'Game'], ['appearance', 'Appearance'], ['java', 'Java'], ['azure', 'Microsoft'], ['launcher', 'Launcher']]
@@ -395,9 +402,11 @@
     let body = '';
     if (S.settingsTab === 'game') {
       body = `
-        <div class="setting"><div class="txt"><b>Memory</b><span>RAM given to Minecraft (up to 4 GB). More than that makes other apps lag.</span></div>
-          <div class="ctl"><div class="row" style="justify-content:space-between"><span class="small muted">Allocated</span><b id="memlabel">${(s.memoryMB / 1024).toFixed(1)} GB</b></div>
-            <input type="range" min="2048" max="4096" step="512" value="${s.memoryMB}" data-input="mem" data-set="memoryMB"/></div></div>
+        <div class="setting"><div class="txt"><b>Memory</b><span>RAM given to Minecraft. Your PC has ${gb(S.mem.totalMB)} GB. Pick what you want; Sushi keeps at least 1 GB free for Windows.</span></div>
+          <div class="ctl"><div class="row" style="justify-content:space-between"><span class="small muted">Allocated</span><b id="memlabel">${gb(s.memoryMB)} GB</b></div>
+            <input type="range" min="${S.mem.minMB}" max="${S.mem.maxMB}" step="${S.mem.stepMB}" value="${s.memoryMB}" data-input="mem" data-set="memoryMB"/>
+            <div class="row" style="justify-content:space-between;margin-top:6px"><span class="small muted">Recommended: ${gb(S.mem.recommendedMB)} GB</span><button class="btn sm" data-act="mem-rec" ${s.memoryMB === S.mem.recommendedMB ? 'disabled' : ''}>Use recommended</button></div>
+            <div class="small" id="memwarn" style="margin-top:6px;color:#f5c04a">${memWarn(s.memoryMB)}</div></div></div>
         <div class="setting"><div class="txt"><b>Resolution</b><span>Starting window size.</span></div>
           <div class="ctl row"><input type="number" min="640" max="7680" value="${s.width}" data-change="set" data-set="width" style="flex:1"/><span class="muted">×</span><input type="number" min="480" max="4320" value="${s.height}" data-change="set" data-set="height" style="flex:1"/></div></div>`;
     } else if (S.settingsTab === 'appearance') {
@@ -671,6 +680,10 @@
         break;
       }
       case 'launch': await launch(); break;
+      case 'mem-rec':
+        await saveSettings({ memoryMB: S.mem.recommendedMB });
+        toast('Memory set to the recommended amount.', 'ok');
+        break;
       case 'join': await launch(el.dataset.addr); break;
       case 'copy-ip':
         await window.sushi.app.copy(el.dataset.addr);
@@ -827,7 +840,7 @@
         const key = el.dataset.set;
         let value = el.value;
         if (['memoryMB', 'width', 'height'].includes(key)) value = Math.round(Number(value));
-        if (key === 'memoryMB') value = Math.min(4096, Math.max(2048, value));
+        if (key === 'memoryMB' && S.mem) value = Math.min(S.mem.maxMB, Math.max(S.mem.minMB, value));
         await saveSettings({ [key]: value });
         if (key === 'contentUrl') S.content = await window.sushi.content.get();
         toast('Saved.', 'ok');
@@ -854,7 +867,9 @@
       S.cQuery = el.value;
     } else if (el.dataset.input === 'mem') {
       const label = document.getElementById('memlabel');
-      if (label) label.textContent = `${(Number(el.value) / 1024).toFixed(1)} GB`;
+      if (label) label.textContent = `${gb(Number(el.value))} GB`;
+      const warn = document.getElementById('memwarn');
+      if (warn) warn.textContent = memWarn(Number(el.value));
     }
   });
 
@@ -887,16 +902,18 @@
   });
 
   async function boot() {
-    const [settings, accounts, catalog, presets, versions, content] = await Promise.all([
+    const [settings, accounts, catalog, presets, versions, content, memLimits] = await Promise.all([
       window.sushi.settings.get(),
       window.sushi.accounts.list(),
       window.sushi.mods.catalog(),
       window.sushi.fps.presets(),
       window.sushi.versions.list().catch(() => []),
       window.sushi.content.get().catch(() => ({ news: [], servers: [] })),
+      window.sushi.settings.memory().catch(() => null),
     ]);
     S.content = content;
     S.settings = settings;
+    S.mem = memLimits || { totalMB: 4096, minMB: 1024, maxMB: 3072, stepMB: 256, recommendedMB: 2048 };
     S.accounts = accounts;
     S.catalog = catalog;
     S.presets = presets;
