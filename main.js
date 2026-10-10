@@ -1,5 +1,5 @@
 // Sushi Client - Electron main process (talks to the launcher core in src/launcher).
-const { app, BrowserWindow, ipcMain, shell, safeStorage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, safeStorage, clipboard, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -47,10 +47,21 @@ function modsFolderFor(p) {
   return path.join(inst, found[0], 'mods');
 }
 
-// Caps the Java heap to 60% of the PC's RAM (minimum 2 GB). A heap bigger than physical RAM causes swapping and heavy lag.
+// Caps the Java heap to 40% of the PC's RAM (minimum 2 GB). The game's heap plus its native memory
+// leaves room for Windows and the apps you use; a big heap pushes the PC into paging and makes everything lag.
 function capMemory(requestedMB) {
   const physicalMB = Math.floor(os.totalmem() / 1048576);
-  return Math.max(2048, Math.min(requestedMB, Math.floor(physicalMB * 0.6)));
+  return Math.max(2048, Math.min(requestedMB, Math.floor(physicalMB * 0.4)));
+}
+
+// Refresh rate of the main display in Hz (0 if unknown).
+function displayHz() {
+  try {
+    const hz = Math.round(screen.getPrimaryDisplay().displayFrequency || 0);
+    return hz >= 30 && hz <= 360 ? hz : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function readJson(file, fallback) {
@@ -193,6 +204,7 @@ function registerIpc() {
         fabric: profile.fabric,
         account,
         memoryMB: capMemory(s.memoryMB),
+        displayHz: displayHz(),
         javaPath: s.javaPath,
         fpsPreset: profile.fpsPreset,
         mods: profile.fabric ? profile.mods : [],

@@ -30,6 +30,7 @@ public class SushiCore implements ClientModInitializer {
                 }
             }
             ClickTracker.tick(client);
+            FocusFpsLimiter.tick(client);
         });
 
         HudRenderCallback.EVENT.register((context, tickCounter) -> SushiHud.render(context));

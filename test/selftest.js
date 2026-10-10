@@ -14,7 +14,7 @@ const { resolveVersion, listVersions } = require('../src/launcher/versions');
 const { installFabric } = require('../src/launcher/fabric');
 const { buildCommand, flatten } = require('../src/launcher/launch');
 const { mavenPath } = require('../src/launcher/install');
-const { presetJvmArgs, applyOptionsTxt } = require('../src/launcher/fpsboost');
+const { presetJvmArgs, applyOptionsTxt, fitMaxFps, FPS_PRESETS } = require('../src/launcher/fpsboost');
 const { MOD_CATALOG } = require('../src/launcher/mods');
 
 const step = (name) => console.log(`- ${name}`);
@@ -115,6 +115,14 @@ async function waitFor(cond, timeoutMs, label) {
   assert(MOD_CATALOG.length >= 5);
   assert(MOD_CATALOG.find((m) => m.slug === 'sushi-core' && m.bundled));
   assert(fs.existsSync(path.join(__dirname, '..', 'assets', 'mods', 'sushi-core-1.21.1.jar')), 'bundled jar missing');
+
+  step('FPS cap follows the monitor refresh rate');
+  assert.strictEqual(fitMaxFps({ maxFps: '260' }, 144).maxFps, '144');
+  assert.strictEqual(fitMaxFps({ maxFps: '144' }, 60).maxFps, '60');
+  assert.strictEqual(fitMaxFps({ maxFps: '144' }, 240).maxFps, '144');
+  assert.strictEqual(fitMaxFps({ maxFps: '260' }, 0).maxFps, '260', 'unknown refresh keeps the preset');
+  assert.strictEqual(fitMaxFps(FPS_PRESETS.off.options, 60).maxFps, undefined, 'Off preset stays untouched');
+  assert(!FPS_PRESETS.max.description.includes('260'));
 
   step('CPU reserve flags');
   const { coreReserveArgs, startGameProcess } = require('../src/launcher/gameprocess');

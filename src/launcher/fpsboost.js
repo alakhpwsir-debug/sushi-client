@@ -34,7 +34,7 @@ const FPS_PRESETS = {
   },
   max: {
     label: 'Max FPS',
-    description: 'Lowest visual quality, highest frame rate. Uses ZGC on Java 17+.',
+    description: 'Lowest visual quality, highest frame rate, capped to your monitor\'s refresh rate. Uses ZGC on Java 17+.',
     jvm: null, // chosen per Java version in presetJvmArgs
     options: {
       maxFps: '260',
@@ -60,6 +60,13 @@ function presetJvmArgs(key, javaMajor = 8) {
   return preset.jvm;
 }
 
+// Frames above the monitor's refresh rate are never shown, so they only waste GPU and CPU.
+// hz: the primary display's refresh rate (0 when unknown, which keeps the preset value).
+function fitMaxFps(options, hz) {
+  if (!options || !options.maxFps || !hz) return options;
+  return { ...options, maxFps: String(Math.min(Number(options.maxFps), hz)) };
+}
+
 // Merges key:value pairs into options.txt (keeps every other setting).
 function applyOptionsTxt(gameDir, options) {
   if (!options || Object.keys(options).length === 0) return;
@@ -76,4 +83,4 @@ function applyOptionsTxt(gameDir, options) {
   fs.writeFileSync(file, [...map].map(([k, v]) => `${k}:${v}`).join('\n') + '\n');
 }
 
-module.exports = { FPS_PRESETS, presetJvmArgs, applyOptionsTxt };
+module.exports = { FPS_PRESETS, presetJvmArgs, applyOptionsTxt, fitMaxFps };

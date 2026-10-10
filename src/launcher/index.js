@@ -5,7 +5,7 @@ const { dirs } = require('./paths');
 const { installVersion } = require('./install');
 const { ensureJava } = require('./java');
 const { buildCommand } = require('./launch');
-const { FPS_PRESETS, presetJvmArgs, applyOptionsTxt } = require('./fpsboost');
+const { FPS_PRESETS, presetJvmArgs, applyOptionsTxt, fitMaxFps } = require('./fpsboost');
 const { installMods, MOD_CATALOG } = require('./mods');
 const { installFabric } = require('./fabric');
 const { listVersions } = require('./versions');
@@ -75,7 +75,7 @@ async function launchGame(opts, emit) {
   }
 
   const preset = FPS_PRESETS[opts.fpsPreset] || FPS_PRESETS.off;
-  applyOptionsTxt(gameDir, { ...preset.options, resourcePacks: `[${['"vanilla"', ...packFiles].join(',')}]` });
+  applyOptionsTxt(gameDir, { ...fitMaxFps(preset.options, opts.displayHz), resourcePacks: `[${['"vanilla"', ...packFiles].join(',')}]` });
 
   const javaPath = opts.javaPath || (await ensureJava(root, inst.javaMajor, status));
   const extraJvm = [...presetJvmArgs(opts.fpsPreset, inst.javaMajor), ...coreReserveArgs()];
